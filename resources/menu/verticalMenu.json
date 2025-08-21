@@ -1,0 +1,61 @@
+{
+    "menu": [
+        {
+            "url": "/",
+            "name": "Dashboard",
+            "icon": "menu-icon tf-icons bx bx-home-smile",
+            "slug": "dashboard",
+            "access": ["admin", "client"]
+        },
+
+        {
+            "url": "/refunds",
+            "name": "Refunds Management",
+            "icon": "menu-icon tf-icons bx bx-credit-card",
+            "slug": "refunds.index",
+            "access": ["admin", "client"]
+        },
+        {
+            "url": "/fee-profiles",
+            "name": "Fees",
+            "icon": "menu-icon tf-icons bx bx-dollar",
+            "slug": "fees",
+            "access": ["admin"]
+        },
+        {
+            "url": "/users",
+            "name": "Users",
+            "icon": "menu-icon tf-icons bx bx-user",
+            "slug": "users",
+            "access": ["admin", "client"]
+        },
+        {
+            "url": "/banks",
+            "name": "Banks",
+            "icon": "menu-icon tf-icons bx bxs-bank",
+            "slug": "banks.index",
+            "access": ["admin"]
+        },
+        {
+            "url": "/partner/dashboard",
+            "name": "Partner",
+            "icon": "menu-icon tf-icons bx bx-cog",
+            "slug": "partner",
+            "access": ["admin", "partner"]
+        },
+        {
+            "url": "/reports",
+            "name": "Reports",
+            "icon": "menu-icon tf-icons bx bx-bar-chart",
+            "slug": "reports.index",
+            "access": ["admin"]
+        },
+        {
+            "url": "/accounts",
+            "name": "Accounts",
+            "icon": "menu-icon tf-icons bx bx-group",
+            "slug": "accounts",
+            "access": ["admin", "client"]
+        }
+    ]
+}

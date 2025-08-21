@@ -1,0 +1,48 @@
+Crie uma página de documentação de API profissional, moderna e responsiva, com o seguinte escopo:
+
+📝 **Contexto da API:**
+- É uma API de pagamentos via PIX já em produção.
+- O domínio onde será hospedada é `api.meusite`.
+
+📄 **Seções da Documentação:**
+1. Introdução
+   - Breve explicação sobre a API PIX e para quem é destinada.
+   - Link ou observação sobre como obter credenciais de acesso.
+
+2. Autenticação
+   - Endpoint: `/api/login`
+   - Método: POST
+   - Headers e Body com exemplo em JSON.
+   - Explicação do retorno com token JWT.
+   - Instruções de como usar o token em chamadas futuras.
+
+3. Criar Pagamento
+   - Endpoint: `/create-payment`
+   - Método: POST
+   - Header: Authorization: Bearer {token}
+   - Campos obrigatórios explicados com exemplo.
+   - JSON de exemplo do request.
+   - JSON de exemplo de resposta de sucesso.
+   - JSON de exemplo de resposta de erro.
+
+4. Observações importantes
+   - Expiração do QR Code.
+   - Logs automáticos.
+   - Erros comuns e como tratá-los.
+
+🧩 **Extras:**
+- Adicione blocos de código com destaque de sintaxe (em tabs para diferentes linguagens: cURL, JavaScript fetch, PHP Guzzle, etc.)
+- Adicione uma sidebar fixa com navegação entre seções.
+- Layout limpo, com tipografia moderna.
+- Se possível, adicione um botão “Copiar” nos exemplos de código.
+
+🎨 **Estilo visual desejado:**
+- Baseado em sites como [Stripe Docs](https://stripe.com/docs), [Twilio](https://www.twilio.com/docs), ou [Notion API](https://developers.notion.com).
+- Tema escuro .
+- Fontes legíveis, boa hierarquia visual.
+
+📦 **Tecnologias sugeridas :**
+- HTML, CSS, JavaScript Vanilla.
+Objetivo: Gerar uma documentação técnica acessível em `api.meusite` para desenvolvedores externos ou internos, com visual agradável e conteúdo claro.
+
+No arquivo readme.md que está aqui no projeto, você vai encontrar as informações. O titulo será GETPAY, e atenção, todas as informações devem estar em inglês.

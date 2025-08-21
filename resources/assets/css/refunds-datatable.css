@@ -1,0 +1,15 @@
+
+
+/* Garante que a barra de ferramentas da DataTable e nossos filtros fiquem bem alinhados */
+.dt-buttons .btn {
+    margin-left: 0.5rem;
+}
+
+.dataTables_filter {
+    text-align: right;
+}
+
+#refunds-datatable_wrapper .row:first-child {
+    margin-bottom: 1rem;
+    align-items: center;
+}

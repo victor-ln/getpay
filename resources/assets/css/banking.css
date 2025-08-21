@@ -1,0 +1,37 @@
+/* resources/css/style.css */
+
+body {
+    background-color: #f8f9fa !important; /* Força o background cinza claro do Bootstrap */
+}
+
+.card {
+    border: none;
+    border-radius: 0.75rem;
+}
+
+.display-4 {
+    font-size: 3rem; /* Ajusta o tamanho da fonte do saldo */
+}
+
+.table > tbody > tr:last-child > td {
+    border-bottom: none; /* Remove a borda da última linha da tabela */
+}
+
+/* Estilo para transações estornadas */
+
+.transaction-reverted {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.card-header h5 {
+    font-weight: 600;
+}
+
+.display-5 {
+    font-size: 2.75rem;
+}

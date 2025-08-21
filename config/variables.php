@@ -1,0 +1,28 @@
+<?php
+// Variables
+return [
+    "creatorName" => "Getpay",
+    "creatorUrl" => "https://getpay.store",
+    "templateName" => "GetPay",
+    "templateSuffix" => "GP",
+    "templateVersion" => "1.0.0",
+    "templateFree" => true,
+    "templateDescription" => "",
+    "templateKeyword" => "GETPAY",
+    "licenseUrl" => "https://getpay.store",
+    "livePreview" => "https://getpay.store",
+    "productPage" => "https://getpay.store",
+    "productPagePro" => "https://getpay.store",
+    "support" => "https://getpay.store",
+    "moreThemes" => "https://getpay.store",
+    "documentation" => "https://getpay.store",
+    "repository" => "https://getpay.store",
+    "gitRepo" => "https://getpay.store",
+    "gitRepoAccess" => "https://getpay.store",
+    "githubFreeUrl" => "https://getpay.store",
+    "facebookUrl" => "https://getpay.store",
+    "twitterUrl" => "https://getpay.store",
+    "githubUrl" => "https://getpay.store",
+    "dribbbleUrl" => "https://getpay.store",
+    "instagramUrl" => "https://getpay.store",
+];

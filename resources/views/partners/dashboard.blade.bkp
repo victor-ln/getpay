@@ -1,0 +1,52 @@
+@extends('layouts/contentNavbarLayout')
+
+@section('title', 'Partner Dashboard')
+
+@section('content')
+<h6 class="py-3 mb-4">
+    <span class="text-muted fw-light">Dashboard /</span> My Accounts
+</h6>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Profit Sharing Accounts</h5>
+                <small class="text-muted">This is the list of accounts where you have a commission set.</small>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID </th>
+                            <th>Account</th>
+                            <th class="text-end">Your Share of the Profits</th>
+                            <th class="text-end">Platform Withdrawal Fee</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($accounts as $account)
+                        <tr>
+                            <td>{{ $account->id }}</td>
+                            <td><strong>{{ $account->name }}</strong></td>
+                            {{-- Acessamos os dados da tabela pivot aqui --}}
+                            <td class="text-end">{{ number_format($account->pivot->commission_rate * 100, 2) }}%</td>
+                            <td class="text-end">{{ number_format($account->pivot->platform_withdrawal_fee_rate * 100, 2) }}%</td>
+                            <td class="text-center">
+                                {{-- Este botão levará para a view de histórico que planejamos na Fase B --}}
+                                <a href="{{ route('accounts.history', $account->id) }}" class="btn btn-sm btn-info">History Account</a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-4">You are not yet associated with any account.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
