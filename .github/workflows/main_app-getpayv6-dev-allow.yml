@@ -67,6 +67,9 @@ jobs:
         rm -f bootstrap/cache/config.php
         rm -rf tests
 
+    - name: Create deployment package
+      run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*" -x ".env"
+
     # Passo 11: Deploy para Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
@@ -74,4 +77,5 @@ jobs:
         app-name: ${{ env.AZURE_WEBAPP_APP_NAME }}
         slot-name: ${{ env.AZURE_WEBAPP_SLOT_NAME }}
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
-        package: .
+        # [MODIFICADO] Aponta para o arquivo zip que acabamos de criar
+        package: './deployment.zip'
