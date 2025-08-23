@@ -30,6 +30,6 @@ name: Deploy to Azure Web App
       with:
         app-name: app-getpay/staging        
         slot-name: staging
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
 
       
