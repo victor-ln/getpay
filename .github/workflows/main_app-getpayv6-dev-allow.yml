@@ -67,12 +67,6 @@ jobs:
         rm -f bootstrap/cache/config.php
         rm -rf tests
 
-    # Passo 10: Criar arquivo de versão
-    - name: Create version file
-      env:
-        COMMIT_SHA: ${{ github.sha }}
-      run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: $COMMIT_SHA" > version.txt
-
     # Passo 11: Deploy para Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
