@@ -14,41 +14,48 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Passo 2: Configurar o ambiente PHP
+    # Passo 2: Configurar o ambiente PHP com cache
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_mysql # Adicione extensões PHP necessárias
+        extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_mysql
         tools: composer
+        coverage: none # Desabilitar Xdebug para performance
+        # NOVO: Adiciona cache para as dependências do Composer
+        cache: 'composer'
 
-    # Passo 3: Instalar dependências do Composer
-    # Isso criará a pasta 'vendor' com as bibliotecas do PHP
+    # Passo 3: Instalar dependências do Composer (apenas para produção)
     - name: Install Composer dependencies
-      run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
+      # ATUALIZADO: Adicionada a flag --no-dev para instalar apenas pacotes de produção
+      run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev
 
     # Passo 4: Configurar o ambiente Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18' # Use a versão do Node.js que seu projeto requer
-        cache: 'npm' # Habilita o cache para as dependências do npm
+        node-version: '18'
+        cache: 'npm'
 
     # Passo 5: Instalar dependências do NPM
     - name: Install NPM dependencies
       run: npm install
 
     # Passo 6: Compilar os assets (CSS/JS)
-    # Isso executará o script 'build' do seu package.json
     - name: Build with NPM
       run: npm run build
 
+    # NOVO E MAIS IMPORTANTE PASSO: Remover a pasta node_modules
+    # Esta pasta é necessária para o build, mas não para a execução em produção.
+    # Removê-la reduz drasticamente o tamanho do pacote de deploy.
+    - name: Remove node_modules
+      run: rm -rf node_modules
+
     # Passo 7: Fazer o deploy para o Azure Web App
-    # Este passo enviará todos os arquivos, incluindo a pasta 'vendor' e os assets compilados
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'app-getpay'
         slot-name: 'staging'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
-        package: . # Garante que o diretório atual seja empacotado e enviado
+        package: .
