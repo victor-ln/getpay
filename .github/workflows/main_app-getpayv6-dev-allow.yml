@@ -42,22 +42,17 @@ jobs:
     - name: Build assets with Vite
       run: npm run build
 
-    # =======================================================
-    # --- [CORRECTION] START: PACKAGE THE APPLICATION ---
-    # =======================================================
-    # This new step creates a clean zip file for deployment, including
-    # the 'vendor' and 'public/build' directories but excluding development files.
+    # NOVO PASSO: Empacota a aplicação em um arquivo zip para o deploy
+    # Este passo garante que as pastas 'vendor' e 'public/build' sejam incluídas.
     - name: Create deployment package
-      run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*" -x ".env" -x "tests/*" -x "package-lock.json"
-    # =======================================================
-    # --- [CORRECTION] END: PACKAGE THE APPLICATION ---
-    # =======================================================
+      run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*"
 
+    # Passo final de deploy, agora usando o pacote zip
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'app-getpayv6-dev-allow'
         slot-name: 'production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
-        # [MODIFIED] Point the package to the zip file we just created
+        # MODIFICADO: Aponta para o arquivo zip que acabamos de criar
         package: './deployment.zip'
