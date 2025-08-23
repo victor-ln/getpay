@@ -18,20 +18,24 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Passo 2: Configurar o ambiente PHP com cache
+    # Passo 2: Configurar o ambiente PHP
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        # MUDANÇA PRINCIPAL: Trocado pdo_mysql por pdo_pgsql para alinhar com o ambiente de produção
         extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql
         tools: composer
-        coverage: none # Desabilitar Xdebug para performance
-        cache: 'composer'
+        coverage: none
+    
+    # NOVO PASSO: Limpar caches antigos do Composer
+    # Isso garante que não usaremos um cache corrompido de execuções anteriores.
+    - name: Clear Composer cache
+      run: composer clear-cache
 
-    # Passo 3: Instalar dependências do Composer (apenas para produção)
+    # Passo 3: Instalar dependências do Composer de forma limpa
+    # ATUALIZADO: Adicionada a flag --no-cache para forçar o download de todos os pacotes.
     - name: Install Composer dependencies
-      run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev
+      run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev --no-cache
 
     # Passo 4: Preparar o arquivo .env
     - name: Prepare .env file
@@ -56,9 +60,12 @@ jobs:
     - name: Build with NPM
       run: npm run build
 
-    # Passo 9: Remover a pasta node_modules
-    - name: Remove node_modules
-      run: rm -rf node_modules
+    # Passo 9: Remover a pasta node_modules e o cache do build
+    # ATUALIZADO: Também removemos o arquivo de cache de configuração, se existir.
+    - name: Cleanup for deployment
+      run: |
+        rm -rf node_modules
+        rm -f bootstrap/cache/config.php
 
     # Passo 10: Fazer o deploy para o Azure Web App
     - name: Deploy to Azure Web App
