@@ -27,47 +27,69 @@ jobs:
         tools: composer
         coverage: none
     
-    # NOVO PASSO: Limpar caches antigos do Composer
-    # Isso garante que não usaremos um cache corrompido de execuções anteriores.
+    # Passo 3: Limpar caches do Composer
     - name: Clear Composer cache
       run: composer clear-cache
 
-    # Passo 3: Instalar dependências do Composer de forma limpa
-    # ATUALIZADO: Adicionada a flag --no-cache para forçar o download de todos os pacotes.
+    # Passo 4: Instalar dependências do Composer
+    # IMPORTANTE: Removemos --no-cache para evitar problemas de dependências
     - name: Install Composer dependencies
-      run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev --no-cache
+      run: |
+        composer validate
+        composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev
 
-    # Passo 4: Preparar o arquivo .env
+    # Passo 5: Verificar se o autoload foi criado
+    - name: Verify Composer autoload
+      run: |
+        if [ ! -f "vendor/autoload.php" ]; then
+          echo "ERRO: Autoload não foi criado!"
+          exit 1
+        fi
+        php -r "require 'vendor/autoload.php'; echo 'Autoload OK\n';"
+
+    # Passo 6: Preparar o arquivo .env
     - name: Prepare .env file
       run: cp .env.example .env
 
-    # Passo 5: Gerar a chave da aplicação Laravel
+    # Passo 7: Gerar a chave da aplicação Laravel
     - name: Generate Laravel Application Key
       run: php artisan key:generate
 
-    # Passo 6: Configurar o ambiente Node.js
+    # Passo 8: Configurar o ambiente Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
 
-    # Passo 7: Instalar dependências do NPM
+    # Passo 9: Instalar dependências do NPM
     - name: Install NPM dependencies
-      run: npm install
+      run: npm ci --prefer-offline
 
-    # Passo 8: Compilar os assets (CSS/JS)
+    # Passo 10: Compilar os assets (CSS/JS)
     - name: Build with NPM
       run: npm run build
 
-    # Passo 9: Remover a pasta node_modules e o cache do build
-    # ATUALIZADO: Também removemos o arquivo de cache de configuração, se existir.
+    # Passo 11: Cleanup para deployment
     - name: Cleanup for deployment
       run: |
         rm -rf node_modules
+        rm -rf .git
+        rm -f .env
         rm -f bootstrap/cache/config.php
+        
+        # Remove arquivos de desenvolvimento
+        rm -f package.json
+        rm -f package-lock.json
+        rm -f webpack.mix.js
+        rm -f vite.config.js
+        rm -rf tests
 
-    # Passo 10: Fazer o deploy para o Azure Web App
+    # Passo 12: Criar arquivo de versão (opcional, para debug)
+    - name: Create version file
+      run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: ${{ github.sha }}" > version.txt
+
+    # Passo 13: Deploy para Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:

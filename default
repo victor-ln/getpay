@@ -8,6 +8,19 @@ server {
     index index.php index.html index.htm;
 
     charset utf-8;
+    
+    # Configurações de timeout
+    fastcgi_read_timeout 300;
+    client_max_body_size 100M;
+
+    # Logs
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
 
     # Regras de reescrita padrão do Laravel
     location / {
@@ -17,20 +30,48 @@ server {
     # Passa as requisições PHP para o PHP-FPM
     location ~ \.php$ {
         include fastcgi_params;
-        fastcgi_pass unix:/run/php/php-fpm.sock; # O caminho do socket pode variar, mas este é o padrão no Azure
+        fastcgi_pass unix:/run/php/php-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         fastcgi_param DOCUMENT_ROOT $realpath_root;
-        internal;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_read_timeout 300;
+        
+        # Evita execução de PHP em uploads
+        location ~ ^/storage/.*\.php$ {
+            return 403;
+        }
     }
 
-    # Nega acesso a arquivos .ht
-    location ~ /\.ht {
+    # Nega acesso a arquivos sensíveis
+    location ~ /\.(ht|env|git) {
         deny all;
+        return 404;
+    }
+
+    # Nega acesso a pastas sensíveis
+    location ~ /(vendor|storage|bootstrap/cache) {
+        deny all;
+        return 404;
     }
 
     # Otimizações para arquivos estáticos
-    location ~* \.(css|js|gif|ico|jpeg|jpg|png)$ {
-        expires max;
+    location ~* \.(css|js|gif|ico|jpeg|jpg|png|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
         log_not_found off;
+        access_log off;
+    }
+
+    # Handle favicon.ico
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
+
+    # Handle robots.txt
+    location = /robots.txt {
+        allow all;
+        log_not_found off;
+        access_log off;
     }
 }
