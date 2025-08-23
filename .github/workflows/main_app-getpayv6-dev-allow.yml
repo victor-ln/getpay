@@ -27,13 +27,13 @@ jobs:
         tools: composer
         coverage: none
     
-    # Passo 3: Validar e limpar o cache do Composer para garantir uma instalação limpa
+    # Passo 3: Validar e limpar o cache do Composer
     - name: Validate and Clear Composer Cache
       run: |
         composer validate --strict
         composer clear-cache
 
-    # Passo 4: Instalar dependências do Composer sem usar cache
+    # Passo 4: Instalar dependências do Composer
     - name: Install Composer dependencies
       run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader --no-cache
 
@@ -67,9 +67,11 @@ jobs:
         rm -f bootstrap/cache/config.php
         rm -rf tests
 
-    # Passo 10: Criar arquivo de versão
+    # Passo 10: Criar arquivo de versão (CORRIGIDO)
     - name: Create version file
-      run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: ${{ github.sha }}" > version.txt
+      env:
+        COMMIT_SHA: ${{ github.sha }}
+      run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: $COMMIT_SHA" > version.txt
 
     # Passo 11: Deploy para Azure Web App
     - name: Deploy to Azure Web App
