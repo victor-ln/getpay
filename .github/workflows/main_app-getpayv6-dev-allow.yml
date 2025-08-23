@@ -27,66 +27,51 @@ jobs:
         tools: composer
         coverage: none
     
-    # Passo 3: Limpar caches do Composer
-    - name: Clear Composer cache
-      run: composer clear-cache
+    # Passo 3: Validar e limpar o cache do Composer para garantir uma instalação limpa
+    - name: Validate and Clear Composer Cache
+      run: |
+        composer validate --strict
+        composer clear-cache
 
-    # Passo 4: Instalar dependências do Composer
+    # Passo 4: Instalar dependências do Composer sem usar cache
     - name: Install Composer dependencies
-      run: |
-        composer validate
-        composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev
+      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader --no-cache
 
-    # Passo 5: Verificar se o autoload foi criado
-    - name: Verify Composer autoload
-      run: |
-        if [ ! -f "vendor/autoload.php" ]; then
-          echo "ERRO: Autoload não foi criado!"
-          exit 1
-        fi
-        php -r "require 'vendor/autoload.php'; echo 'Autoload OK\n';"
-
-    # Passo 6: Preparar o arquivo .env
+    # Passo 5: Preparar o arquivo .env
     - name: Prepare .env file
       run: cp .env.example .env
 
-    # Passo 7: Gerar a chave da aplicação Laravel
+    # Passo 6: Gerar a chave da aplicação Laravel
     - name: Generate Laravel Application Key
       run: php artisan key:generate
 
-    # Passo 8: Configurar o ambiente Node.js
+    # Passo 7: Configurar o ambiente Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
 
-    # Passo 9: Instalar dependências do NPM
+    # Passo 8: Instalar e compilar assets
     - name: Install NPM dependencies
-      run: npm ci --prefer-offline
-
-    # Passo 10: Compilar os assets (CSS/JS)
+      run: npm ci
     - name: Build with NPM
       run: npm run build
 
-    # Passo 11: Cleanup para deployment
+    # Passo 9: Limpeza final para o deploy
     - name: Cleanup for deployment
       run: |
         rm -rf node_modules
         rm -rf .git
         rm -f .env
         rm -f bootstrap/cache/config.php
-        rm -f package.json
-        rm -f package-lock.json
-        rm -f webpack.mix.js
-        rm -f vite.config.js
         rm -rf tests
 
-    # Passo 12: Criar arquivo de versão
+    # Passo 10: Criar arquivo de versão
     - name: Create version file
       run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: ${{ github.sha }}" > version.txt
 
-    # Passo 13: Deploy para Azure Web App
+    # Passo 11: Deploy para Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:

@@ -3,59 +3,32 @@
 # Navega para a raiz da aplicação
 cd /home/site/wwwroot
 
-# Instalar dependências do Composer se não existirem ou estiverem incompletas
-if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
-    echo "Instalando dependências do Composer..."
-    composer install --no-dev --optimize-autoloader --no-interaction
-else
-    echo "Verificando integridade das dependências..."
-    composer install --no-dev --optimize-autoloader --no-interaction
-fi
-
-# Verifica se o autoload foi criado corretamente
-if [ ! -f "vendor/autoload.php" ]; then
-    echo "ERRO: Autoload do Composer não foi criado. Tentando novamente..."
-    rm -rf vendor
-    composer clear-cache
-    composer install --no-dev --optimize-autoloader --no-interaction
-fi
-
-# Aguarda um pouco para garantir que os arquivos foram escritos
-sleep 2
-
-# Limpa TODOS os caches antigos do Laravel
+# Limpa TODOS os caches antigos do Laravel para garantir que as novas configurações sejam lidas
 echo "Limpando caches do Laravel..."
-php artisan route:clear 2>/dev/null || true
-php artisan view:clear 2>/dev/null || true
-php artisan config:clear 2>/dev/null || true
-php artisan cache:clear 2>/dev/null || true
+php artisan route:clear
+php artisan view:clear
+php artisan config:clear
+php artisan cache:clear
 
-# Recria o cache de configuração com as variáveis do Azure
-echo "Recriando o cache de configuração com as variáveis do Azure..."
+# Recria o cache de configuração com as variáveis de ambiente do Azure
+echo "Recriando o cache de configuração..."
 php artisan config:cache
 
-# Cria as pastas necessárias se não existirem
-mkdir -p /home/site/wwwroot/storage/logs
-mkdir -p /home/site/wwwroot/storage/framework/cache
-mkdir -p /home/site/wwwroot/storage/framework/sessions
-mkdir -p /home/site/wwwroot/storage/framework/views
-mkdir -p /home/site/wwwroot/bootstrap/cache
-
-# Corrige as permissões das pastas (sem usar chown pois não temos permissão)
+# Garante que as permissões de escrita estão corretas
 echo "Corrigindo permissões..."
-chmod -R 755 /home/site/wwwroot/storage 2>/dev/null || true
-chmod -R 755 /home/site/wwwroot/bootstrap/cache 2>/dev/null || true
+chmod -R 775 /home/site/wwwroot/storage
+chmod -R 775 /home/site/wwwroot/bootstrap/cache
 
 # Copia a configuração customizada do Nginx
-echo "Copiando configuração customizada do Nginx..."
+echo "Copiando configuração do Nginx..."
 if [ -f "/home/site/wwwroot/default" ]; then
     cp /home/site/wwwroot/default /etc/nginx/sites-available/default
     cp /home/site/wwwroot/default /etc/nginx/sites-enabled/default
     
-    # Testa a configuração do Nginx antes de recarregar
-    nginx -t && service nginx reload || echo "Erro na configuração do Nginx"
+    # Testa a configuração do Nginx antes de recarregar (ótima prática!)
+    nginx -t && service nginx reload || echo "ERRO: Falha ao recarregar o Nginx. Verifique a configuração."
 else
-    echo "Arquivo de configuração do Nginx não encontrado"
+    echo "AVISO: Arquivo de configuração 'default' do Nginx não encontrado. Usando configuração padrão do Azure."
 fi
 
-echo "Script de inicialização concluído com sucesso."
+echo "Script de inicialização concluído."
