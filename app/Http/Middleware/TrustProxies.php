@@ -12,48 +12,17 @@ class TrustProxies extends Middleware
      *
      * @var array<int, string>|string|null
      */
-    //     protected $proxies = '*';
-
-    //     /**
-    //      * The headers that should be used to detect proxies.
-    //      *
-    //      * @var int
-    //      */
-    //     protected $headers =
-    //     Request::HEADER_X_FORWARDED_FOR |
-    //         Request::HEADER_X_FORWARDED_HOST |
-    //         Request::HEADER_X_FORWARDED_PORT |
-    //         Request::HEADER_X_FORWARDED_PROTO |
-    //         Request::HEADER_X_FORWARDED_AWS_ELB;
-
-    /**
-     * The trusted proxies for this application.
-     *
-     * @var array<int, string>
-     */
-    protected $proxies;
+    protected $proxies = '*';
 
     /**
      * The headers that should be used to detect proxies.
      *
      * @var int
      */
-    protected $headers = Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_CSRF_TOKEN;
-
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    public function handle(Request $request, \Closure $next)
-    {
-        $this->proxies = [
-            '192.168.1.1',
-            '192.168.1.2',
-        ];
-
-        return parent::handle($request, $next);
-    }
+    protected $headers =
+    Request::HEADER_X_FORWARDED_FOR |
+        Request::HEADER_X_FORWARDED_HOST |
+        Request::HEADER_X_FORWARDED_PORT |
+        Request::HEADER_X_FORWARDED_PROTO |
+        Request::HEADER_X_FORWARDED_AWS_ELB;
 }
