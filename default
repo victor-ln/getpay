@@ -1,57 +1,57 @@
 server {
-# A porta é definida pela variável de ambiente do Azure
 listen 8080;
 listen [::]:8080;
 
-# Define a raiz para a pasta 'public' do Laravel
 root /home/site/wwwroot/public;
 index index.php index.html index.htm;
 
 charset utf-8;
 
-# Configurações de timeout e tamanho de requisição
-fastcgi_read_timeout 300;
-client_max_body_size 100M;
-
 # Logs
 access_log /var/log/nginx/access.log;
 error_log /var/log/nginx/error.log;
 
-# Cabeçalhos de segurança
+# Security headers
 add_header X-Frame-Options "SAMEORIGIN" always;
 add_header X-Content-Type-Options "nosniff" always;
 add_header X-XSS-Protection "1; mode=block" always;
 
-# Regra principal do Laravel para URLs amigáveis
+# Laravel rewrite rules
 location / {
 try_files $uri $uri/ /index.php?$query_string;
 }
 
-# [CORREÇÃO] A regra para evitar execução de PHP em pastas de upload
-# foi movida para seu próprio bloco, antes da regra geral de PHP.
-# Isso garante que ela seja avaliada primeiro.
-location ~ /storage/.*\.php$ {
-deny all;
-return 403;
-}
-
-# Passa as requisições PHP para o PHP-FPM
+# Pass PHP requests to PHP-FPM - CORRIGIDO para Azure
 location ~ \.php$ {
 include fastcgi_params;
-fastcgi_pass unix:/run/php/php-fpm.sock;
+# MUDANÇA PRINCIPAL: Usar 127.0.0.1:9000 em vez do socket Unix
+fastcgi_pass 127.0.0.1:9000;
 fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
 fastcgi_param DOCUMENT_ROOT $realpath_root;
 fastcgi_param PATH_INFO $fastcgi_path_info;
 fastcgi_read_timeout 300;
+fastcgi_connect_timeout 60;
+fastcgi_send_timeout 300;
+
+# Prevent execution of PHP files in uploads
+location ~ ^/storage/.*\.php$ {
+return 403;
+}
 }
 
-# Nega acesso a arquivos sensíveis na raiz do projeto
+# Deny access to sensitive files
 location ~ /\.(ht|env|git) {
 deny all;
 return 404;
 }
 
-# Otimizações de cache para arquivos estáticos
+# Deny access to sensitive directories
+location ~ /(vendor|storage|bootstrap/cache) {
+deny all;
+return 404;
+}
+
+# Static file optimization
 location ~* \.(css|js|gif|ico|jpeg|jpg|png|svg|woff|woff2|ttf|eot)$ {
 expires 1y;
 add_header Cache-Control "public, immutable";
@@ -59,13 +59,13 @@ log_not_found off;
 access_log off;
 }
 
-# Lida com favicon.ico para reduzir ruído nos logs
+# Handle favicon.ico
 location = /favicon.ico {
 log_not_found off;
 access_log off;
 }
 
-# Lida com robots.txt
+# Handle robots.txt
 location = /robots.txt {
 allow all;
 log_not_found off;
