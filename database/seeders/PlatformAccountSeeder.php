@@ -14,6 +14,7 @@ class PlatformAccountSeeder extends Seeder
      */
     public function run(): void
     {
+
         $banks = Bank::all();
         foreach ($banks as $bank) {
             PlatformAccount::firstOrCreate(
