@@ -1,4 +1,4 @@
-name: Deploy PHP App to Azure Web App
+name: Deploy PHP App to Azure Web App/staging
 
 on:
   push:
@@ -9,10 +9,16 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      AZURE_WEBAPP_APP_NAME: 'app-getpayv6-dev-allow'
+      AZURE_WEBAPP_SLOT_NAME: 'production'
+
     steps:
+    # Passo 1: Clonar o repositório
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Passo 2: Configurar o ambiente PHP
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -20,32 +26,40 @@ jobs:
         extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql
         tools: composer
         coverage: none
+    
+    # Passo 3: Validar e limpar o cache do Composer
+    - name: Validate and Clear Composer Cache
+      run: |
+        composer validate --strict
+        composer clear-cache
 
-    - name: Clear Composer cache
-      run: composer clear-cache
-
+    # Passo 4: Instalar dependências do Composer
     - name: Install Composer dependencies
-      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
+      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader --no-cache
 
+    # Passo 5: Preparar o arquivo .env
     - name: Prepare .env file
       run: cp .env.example .env
 
+    # Passo 6: Gerar a chave da aplicação Laravel
     - name: Generate Laravel Application Key
       run: php artisan key:generate
 
+    # Passo 7: Configurar o ambiente Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
 
+    # Passo 8: Instalar e compilar assets
     - name: Install NPM dependencies
       run: npm ci
-
-    - name: Build assets
+    - name: Build with NPM
       run: npm run build
 
-    - name: Clean up for deployment
+    # Passo 9: Limpeza final para o deploy
+    - name: Cleanup for deployment
       run: |
         rm -rf node_modules
         rm -rf .git
@@ -53,10 +67,17 @@ jobs:
         rm -f bootstrap/cache/config.php
         rm -rf tests
 
+    # Passo 10: Criar arquivo de versão
+    - name: Create version file
+      env:
+        COMMIT_SHA: ${{ github.sha }}
+      run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: $COMMIT_SHA" > version.txt
+
+    # Passo 11: Deploy para Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'app-getpayv6-dev-allow'
-        slot-name: 'production'
+        app-name: ${{ env.AZURE_WEBAPP_APP_NAME }}
+        slot-name: ${{ env.AZURE_WEBAPP_SLOT_NAME }}
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
         package: .
