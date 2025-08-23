@@ -1,0 +1,36 @@
+server {
+    # A porta é definida pela variável de ambiente do Azure
+    listen 8080;
+    listen [::]:8080;
+
+    # Define a raiz para a pasta 'public' do Laravel
+    root /home/site/wwwroot/public;
+    index index.php index.html index.htm;
+
+    charset utf-8;
+
+    # Regras de reescrita padrão do Laravel
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # Passa as requisições PHP para o PHP-FPM
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php-fpm.sock; # O caminho do socket pode variar, mas este é o padrão no Azure
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        internal;
+    }
+
+    # Nega acesso a arquivos .ht
+    location ~ /\.ht {
+        deny all;
+    }
+
+    # Otimizações para arquivos estáticos
+    location ~* \.(css|js|gif|ico|jpeg|jpg|png)$ {
+        expires max;
+        log_not_found off;
+    }
+}
