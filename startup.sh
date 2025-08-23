@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# NOVO: Habilita a extensão pdo_pgsql no container
-echo "Habilitando a extensão PHP pdo_pgsql..."
-docker-php-ext-enable pdo_pgsql
-
-# ---------------------------------------------------
-
 # Navega para a raiz da aplicação
 cd /home/site/wwwroot
 
-# Limpa os caches do Laravel
-php artisan config:clear
+# Habilita a extensão pdo_pgsql no container (garantia)
+echo "Habilitando a extensão PHP pdo_pgsql..."
+docker-php-ext-enable pdo_pgsql
+
+# Limpa TODOS os caches antigos
 php artisan route:clear
 php artisan view:clear
+php artisan config:clear
+
+# NOVO E MAIS IMPORTANTE: Recria o cache de configuração
+# Este comando lê as variáveis de ambiente do Azure e cria um novo cache.
+echo "Recriando o cache de configuração com as variáveis do Azure..."
+php artisan config:cache
 
 # Corrige as permissões das pastas
 chown -R www-data:www-data /home/site/wwwroot/storage

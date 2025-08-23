@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      AZURE_WEBAPP_APP_NAME: 'app-getpay'
-      AZURE_WEBAPP_SLOT_NAME: 'staging'
+      AZURE_WEBAPP_APP_NAME: 'app-getpayv6-dev-allow'
+      AZURE_WEBAPP_SLOT_NAME: 'production'
 
     steps:
     # Passo 1: Clonar o repositório
