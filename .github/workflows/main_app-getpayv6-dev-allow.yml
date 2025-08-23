@@ -5,6 +5,11 @@ on:
     branches:
       - main
 
+env:
+  # Variáveis de ambiente para build
+  NODE_ENV: production
+  APP_ENV: production
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -12,47 +17,179 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        # Garante que todos os arquivos sejam baixados
+        fetch-depth: 0
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql
-        tools: composer
+        extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql, zip, gd
+        tools: composer:v2
         coverage: none
 
+    - name: Validate composer.json
+      run: composer validate --strict
+
+    - name: Get Composer cache directory
+      id: composer-cache
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: ${{ runner.os }}-composer-
+
     - name: Install Composer dependencies
-      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
-
-    - name: Prepare .env file for build
-      run: cp .env.example .env
-
-    - name: Generate Laravel Application Key
-      run: php artisan key:generate
+      run: |
+        composer install \
+          --prefer-dist \
+          --no-dev \
+          --no-progress \
+          --no-interaction \
+          --optimize-autoloader \
+          --classmap-authoritative
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
+        # Cache baseado no package-lock.json
+        cache-dependency-path: package-lock.json
+
+    - name: Verify Node.js and npm versions
+      run: |
+        echo "Node.js version: $(node --version)"
+        echo "npm version: $(npm --version)"
+
+    - name: Clean npm cache
+      run: npm cache clean --force
 
     - name: Install NPM dependencies
-      run: npm ci
+      run: |
+        # Remove node_modules se existir para garantir instalação limpa
+        rm -rf node_modules
+        npm ci --no-audit --no-fund --prefer-offline
+
+    - name: Verify Vite configuration
+      run: |
+        echo "Verificando arquivos de configuração..."
+        ls -la vite.config.* || echo "Nenhum arquivo vite.config encontrado"
+        ls -la package.json
+        cat package.json | grep -A5 -B5 '"scripts"'
+
+    - name: Prepare Laravel environment
+      run: |
+        # Cria .env para build (não será usado em produção)
+        cp .env.example .env
+        
+        # Gera chave temporária para build
+        php artisan key:generate
+        
+        # Limpa caches
+        php artisan config:clear
+        php artisan cache:clear
+        php artisan view:clear
+        php artisan route:clear
+
+    - name: Verify input files exist
+      run: |
+        echo "Verificando arquivos de entrada do Vite..."
+        ls -la resources/css/ || echo "Pasta resources/css não encontrada"
+        ls -la resources/js/ || echo "Pasta resources/js não encontrada"
+        ls -la resources/assets/ || echo "Pasta resources/assets não encontrada"
+        
+        # Lista todos os arquivos que o Vite deveria processar
+        find resources -name "*.js" -o -name "*.css" -o -name "*.scss" | head -20
 
     - name: Build assets with Vite
-      run: npm run build
+      run: |
+        echo "🏗️ Iniciando build do Vite..."
+        
+        # Define ambiente de produção
+        export NODE_ENV=production
+        export APP_ENV=production
+        
+        # Remove build anterior se existir
+        rm -rf public/build
+        
+        # Executa build com debug
+        npm run build -- --mode production
+        
+        echo "✅ Build concluído!"
 
-    # NOVO PASSO: Empacota a aplicação em um arquivo zip para o deploy
-    # Este passo garante que as pastas 'vendor' e 'public/build' sejam incluídas.
+    - name: Verify Vite build output
+      run: |
+        echo "📁 Verificando arquivos gerados pelo Vite..."
+        
+        if [ -d "public/build" ]; then
+          echo "✅ Diretório public/build existe"
+          ls -la public/build/
+          
+          if [ -f "public/build/manifest.json" ]; then
+            echo "✅ manifest.json encontrado!"
+            echo "Conteúdo do manifest:"
+            cat public/build/manifest.json | head -20
+          else
+            echo "❌ manifest.json NÃO encontrado!"
+            echo "Arquivos no diretório build:"
+            find public/build -type f | head -20
+            exit 1
+          fi
+        else
+          echo "❌ Diretório public/build NÃO existe!"
+          exit 1
+        fi
+
+    - name: Optimize Laravel for production
+      run: |
+        # Remove .env temporário (Azure usará suas próprias variáveis)
+        rm -f .env
+        
+        # Otimizações finais
+        composer dump-autoload --optimize --classmap-authoritative
+
     - name: Create deployment package
-      run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*"
+      run: |
+        echo "📦 Criando pacote de deployment..."
+        
+        # Lista arquivos que serão incluídos
+        echo "Arquivos principais a incluir:"
+        ls -la vendor/ public/build/ || echo "Verificando estrutura..."
+        
+        # Cria zip excluindo arquivos desnecessários
+        zip -r deployment.zip . \
+          -x ".git/*" \
+          -x ".github/*" \
+          -x "node_modules/*" \
+          -x ".env*" \
+          -x "*.log" \
+          -x "storage/logs/*" \
+          -x "storage/framework/cache/*" \
+          -x "storage/framework/sessions/*" \
+          -x "storage/framework/views/*" \
+          -x "tests/*" \
+          -x "phpunit.xml" \
+          -x ".phpunit.result.cache"
+        
+        echo "📊 Tamanho do pacote:"
+        ls -lh deployment.zip
 
-    # Passo final de deploy, agora usando o pacote zip
+    - name: Verify deployment package
+      run: |
+        echo "🔍 Verificando conteúdo do pacote..."
+        unzip -l deployment.zip | grep -E "(vendor|public/build|manifest.json)" || echo "Verificando estrutura..."
+
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'app-getpayv6-dev-allow'
         slot-name: 'production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
-        # MODIFICADO: Aponta para o arquivo zip que acabamos de criar
         package: './deployment.zip'
+        # Configurações adicionais para o deploy
+        clean: true

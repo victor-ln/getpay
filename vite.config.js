@@ -11,7 +11,6 @@ import { glob } from "glob";
 function GetFilesArray(query) {
     return glob.sync(query);
 }
-
 /**
  * Js Files
  */
@@ -87,12 +86,16 @@ export default defineConfig({
                 "X-Requested-With",
             ],
         },
+
+        // Importante: permitir origem externa
         origin: "http://localhost:5173",
     },
     build: {
+        // Para desenvolvimento
         manifest: true,
         outDir: "public/build",
-        // REMOVIDO: rollupOptions que estava sobrescrevendo os inputs do laravel()
-        emptyOutDir: true,
+        rollupOptions: {
+            input: ["resources/css/app.css", "resources/js/app.js"],
+        },
     },
 });
