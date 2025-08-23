@@ -26,7 +26,6 @@ use App\Http\Controllers\PartnerPayoutMethodController;
 use App\Http\Controllers\PixKeyController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\WithdrawController;
-use App\Models\Account;
 use App\Models\AccountPixKey;
 
 /*
