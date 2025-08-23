@@ -1,4 +1,4 @@
-name: Deploy PHP App to Azure Web App/staging
+name: Deploy PHP App to Azure Web App
 
 on:
   push:
@@ -9,16 +9,10 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    env:
-      AZURE_WEBAPP_APP_NAME: 'app-getpayv6-dev-allow'
-      AZURE_WEBAPP_SLOT_NAME: 'production'
-
     steps:
-    # Passo 1: Clonar o repositório
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Passo 2: Configurar o ambiente PHP
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -26,49 +20,46 @@ jobs:
         extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql
         tools: composer
         coverage: none
-    
-    # Passo 3: Instalar dependências do Composer
+
     - name: Install Composer dependencies
       run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
 
-    # Passo 4: Preparar o arquivo .env (O Azure usará as Application Settings)
     - name: Prepare .env file for build
       run: cp .env.example .env
 
-    # Passo 5: Gerar a chave da aplicação (necessário para o build)
     - name: Generate Laravel Application Key
       run: php artisan key:generate
 
-    # Passo 6: Configurar o ambiente Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
 
-    # Passo 7: Instalar e compilar assets
     - name: Install NPM dependencies
       run: npm ci
-    - name: Build with NPM
+
+    - name: Build assets with Vite
       run: npm run build
 
+    - name: Verify build output
+      run: |
+        echo "Verificando se os assets foram compilados:"
+        ls -la public/build/ || echo "Pasta build não encontrada"
+        ls -la public/build/manifest.json || echo "Manifest.json não encontrado"
 
-    # =======================================================
-    # --- [CORREÇÃO] INÍCIO: EMPACOTAR A APLICAÇÃO ---
-    # =======================================================
-    - name: Create deployment package
-      run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*" -x ".env"
+    - name: Clean up for deployment
+      run: |
+        rm -rf node_modules
+        rm -f .env
+        rm -rf .git
+        rm -rf tests
+        rm -f package-lock.json
 
-    # =======================================================
-    # --- [CORREÇÃO] FIM: EMPACOTAR A APLICAÇÃO ---
-    # =======================================================
-
-    # Passo 11: Deploy para Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: ${{ env.AZURE_WEBAPP_APP_NAME }}
-        slot-name: ${{ env.AZURE_WEBAPP_SLOT_NAME }}
+        app-name: 'app-getpayv6-dev-allow'
+        slot-name: 'production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
-        # [MODIFICADO] Aponta para o arquivo zip que acabamos de criar
-        package: './deployment.zip'
+        package: .
