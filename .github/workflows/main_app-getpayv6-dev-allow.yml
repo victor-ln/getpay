@@ -1,25 +1,99 @@
-#!/bin/bash
+name: Deploy PHP App to Azure Web App/staging
 
-cd /home/site/wwwroot
+on:
+  push:
+    branches:
+      - main
 
-# Instala dependências se necessário
-if [ ! -f "vendor/autoload.php" ]; then
-    composer install --no-dev --optimize-autoloader
-fi
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
-# Limpa caches
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+    env:
+      AZURE_WEBAPP_APP_NAME: 'app-getpayv6-dev-allow'
+      AZURE_WEBAPP_SLOT_NAME: 'production'
 
-# Recria cache
-php artisan config:cache
+    steps:
+    # Passo 1: Clonar o repositório
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-# Cria diretórios necessários
-mkdir -p storage/logs
-mkdir -p storage/framework/cache
-mkdir -p storage/framework/sessions
-mkdir -p storage/framework/views
-mkdir -p bootstrap/cache
+    # Passo 2: Configurar o ambiente PHP
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql
+        tools: composer
+        coverage: none
+    
+    # Passo 3: Limpar caches do Composer
+    - name: Clear Composer cache
+      run: composer clear-cache
 
-echo "Startup concluído."
+    # Passo 4: Instalar dependências do Composer
+    # IMPORTANTE: Removemos --no-cache para evitar problemas de dependências
+    - name: Install Composer dependencies
+      run: |
+        composer validate
+        composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev
+
+    # Passo 5: Verificar se o autoload foi criado
+    - name: Verify Composer autoload
+      run: |
+        if [ ! -f "vendor/autoload.php" ]; then
+          echo "ERRO: Autoload não foi criado!"
+          exit 1
+        fi
+        php -r "require 'vendor/autoload.php'; echo 'Autoload OK\n';"
+
+    # Passo 6: Preparar o arquivo .env
+    - name: Prepare .env file
+      run: cp .env.example .env
+
+    # Passo 7: Gerar a chave da aplicação Laravel
+    - name: Generate Laravel Application Key
+      run: php artisan key:generate
+
+    # Passo 8: Configurar o ambiente Node.js
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    # Passo 9: Instalar dependências do NPM
+    - name: Install NPM dependencies
+      run: npm ci --prefer-offline
+
+    # Passo 10: Compilar os assets (CSS/JS)
+    - name: Build with NPM
+      run: npm run build
+
+    # Passo 11: Cleanup para deployment
+    - name: Cleanup for deployment
+      run: |
+        rm -rf node_modules
+        rm -rf .git
+        rm -f .env
+        rm -f bootstrap/cache/config.php
+        
+        # Remove arquivos de desenvolvimento
+        rm -f package.json
+        rm -f package-lock.json
+        rm -f webpack.mix.js
+        rm -f vite.config.js
+        rm -rf tests
+
+    
+    - name: Create version file
+      run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: ${{ github.sha }}" > version.txt
+
+    # Passo 13: Deploy para Azure Web App
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_APP_NAME }}
+        slot-name: ${{ env.AZURE_WEBAPP_SLOT_NAME }}
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
+        package: .
