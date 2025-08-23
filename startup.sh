@@ -19,7 +19,7 @@ echo "Corrigindo permissões..."
 chmod -R 775 /home/site/wwwroot/storage
 chmod -R 775 /home/site/wwwroot/bootstrap/cache
 
-# Copia a configuração customizada do Nginx
+# Copia a configuração customizada do Nginx se existir
 echo "Copiando configuração do Nginx..."
 if [ -f "/home/site/wwwroot/default" ]; then
     cp /home/site/wwwroot/default /etc/nginx/sites-available/default
@@ -33,4 +33,4 @@ fi
 
 
 
-echo "Script de inicialização concluído."
+echo "Script de inicialização concluído com sucesso."
