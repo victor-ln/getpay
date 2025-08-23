@@ -27,48 +27,46 @@ jobs:
         tools: composer
         coverage: none
     
-    # Passo 3: Validar e limpar o cache do Composer
-    - name: Validate and Clear Composer Cache
-      run: |
-        composer validate --strict
-        composer clear-cache
-
-    # Passo 4: Instalar dependências do Composer
+    # Passo 3: Instalar dependências do Composer
     - name: Install Composer dependencies
-      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader --no-cache
+      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
 
-    # Passo 5: Preparar o arquivo .env
-    - name: Prepare .env file
+    # Passo 4: Preparar o arquivo .env (O Azure usará as Application Settings)
+    - name: Prepare .env file for build
       run: cp .env.example .env
 
-    # Passo 6: Gerar a chave da aplicação Laravel
+    # Passo 5: Gerar a chave da aplicação (necessário para o build)
     - name: Generate Laravel Application Key
       run: php artisan key:generate
 
-    # Passo 7: Configurar o ambiente Node.js
+    # Passo 6: Configurar o ambiente Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
 
-    # Passo 8: Instalar e compilar assets
+    # Passo 7: Instalar e compilar assets
     - name: Install NPM dependencies
       run: npm ci
     - name: Build with NPM
       run: npm run build
 
-    # Passo 9: Limpeza final para o deploy
-    - name: Cleanup for deployment
-      run: |
-        rm -rf node_modules
-        rm -rf .git
-        rm -f .env
-        rm -f bootstrap/cache/config.php
-        rm -rf tests
+    # Passo 8: Criar arquivo de versão
+    - name: Create version file
+      env:
+        COMMIT_SHA: ${{ github.sha }}
+      run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: $COMMIT_SHA" > version.txt
 
+    # =======================================================
+    # --- [CORREÇÃO] INÍCIO: EMPACOTAR A APLICAÇÃO ---
+    # =======================================================
     - name: Create deployment package
       run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*" -x ".env"
+
+    # =======================================================
+    # --- [CORREÇÃO] FIM: EMPACOTAR A APLICAÇÃO ---
+    # =======================================================
 
     # Passo 11: Deploy para Azure Web App
     - name: Deploy to Azure Web App
