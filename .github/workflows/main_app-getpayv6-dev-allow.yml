@@ -52,11 +52,6 @@ jobs:
     - name: Build with NPM
       run: npm run build
 
-    # Passo 8: Criar arquivo de versão
-    - name: Create version file
-      env:
-        COMMIT_SHA: ${{ github.sha }}
-      run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: $COMMIT_SHA" > version.txt
 
     # =======================================================
     # --- [CORREÇÃO] INÍCIO: EMPACOTAR A APLICAÇÃO ---
