@@ -71,26 +71,58 @@ jobs:
 
     - name: Install NPM dependencies
       run: |
-        # Remove node_modules se existir para garantir instalação limpa
-        rm -rf node_modules
-        npm ci --no-audit --no-fund --prefer-offline
+        echo "📦 Instalando dependências NPM..."
         
-        # Verifica se Vite foi instalado
-        echo "Verificando instalação do Vite..."
-        npm list vite || echo "Vite não encontrado nas dependências"
+        # Remove node_modules se existir para garantir instalação limpa
+        rm -rf node_modules package-lock.json
+        
+        # Reinstala tudo do zero
+        npm install
+        
+        # Verifica se as dependências principais estão presentes
+        echo "Verificando dependências críticas..."
+        npm list --depth=0 | grep -E "(vite|laravel-vite-plugin)" || echo "⚠️ Dependências do Vite podem estar faltando"
+        
+        # Força instalação das dependências do Vite se não estiverem presentes
+        if ! npm list vite >/dev/null 2>&1; then
+          echo "Forçando instalação do Vite..."
+          npm install vite laravel-vite-plugin --save-dev --force
+        fi
         
         # Verifica binários disponíveis
-        ls -la node_modules/.bin/ | grep vite || echo "Binário do Vite não encontrado"
+        echo "Binários instalados:"
+        ls -la node_modules/.bin/ | head -10
 
     - name: Verify Vite configuration
       run: |
         echo "Verificando arquivos de configuração..."
         ls -la vite.config.* || echo "Nenhum arquivo vite.config encontrado"
         ls -la package.json
-        cat package.json | grep -A5 -B5 '"scripts"'
+        
+        # Mostra o conteúdo completo do package.json
+        echo "=== CONTEÚDO DO PACKAGE.JSON ==="
+        cat package.json
         
         # Verifica se o script build existe
-        node -e "console.log('Scripts disponíveis:', Object.keys(require('./package.json').scripts || {}))"
+        if ! grep -q '"build"' package.json; then
+          echo "❌ Script 'build' não encontrado no package.json!"
+          echo "Adicionando script build..."
+          
+          # Backup do package.json original
+          cp package.json package.json.backup
+          
+          # Adiciona script build usando jq
+          if command -v jq >/dev/null 2>&1; then
+            jq '.scripts.build = "vite build"' package.json > package.json.tmp && mv package.json.tmp package.json
+          else
+            # Fallback sem jq - adiciona manualmente
+            sed -i 's/"scripts": {/"scripts": {\n    "build": "vite build",/' package.json
+          fi
+          
+          echo "✅ Script build adicionado!"
+          echo "Novo conteúdo dos scripts:"
+          grep -A10 '"scripts"' package.json
+        fi
 
     - name: Prepare Laravel environment
       run: |
@@ -116,6 +148,32 @@ jobs:
         # Lista todos os arquivos que o Vite deveria processar
         find resources -name "*.js" -o -name "*.css" -o -name "*.scss" | head -20
 
+    - name: Install Vite if missing
+      run: |
+        echo "🔍 Verificando instalação do Vite..."
+        
+        # Verifica se Vite existe no node_modules
+        if [ ! -f "node_modules/.bin/vite" ]; then
+          echo "❌ Vite não encontrado no node_modules. Instalando..."
+          
+          # Instala Vite e dependências relacionadas
+          npm install --save-dev vite laravel-vite-plugin
+          
+          # Verifica se foi instalado corretamente
+          if [ -f "node_modules/.bin/vite" ]; then
+            echo "✅ Vite instalado com sucesso!"
+          else
+            echo "❌ Falha ao instalar Vite. Tentando instalação global..."
+            npm install -g vite
+          fi
+        else
+          echo "✅ Vite já está instalado!"
+        fi
+        
+        # Lista binários disponíveis para debug
+        echo "Binários disponíveis:"
+        ls -la node_modules/.bin/ | grep -E "(vite|laravel)" || echo "Nenhum binário vite encontrado"
+
     - name: Build assets with Vite
       run: |
         echo "🏗️ Iniciando build do Vite..."
@@ -127,22 +185,25 @@ jobs:
         # Remove build anterior se existir
         rm -rf public/build
         
-        # Verifica se o script build existe no package.json
-        if npm run | grep -q "build"; then
-          echo "✅ Script 'build' encontrado no package.json"
-          npm run build
+        # Método 1: Tenta usar o binário local
+        if [ -f "node_modules/.bin/vite" ]; then
+          echo "✅ Usando Vite local (node_modules/.bin/vite)"
+          ./node_modules/.bin/vite build --mode production
+        
+        # Método 2: Tenta usar npx
+        elif command -v npx >/dev/null 2>&1; then
+          echo "✅ Usando npx vite"
+          npx vite build --mode production
+        
+        # Método 3: Tenta usar Vite global
+        elif command -v vite >/dev/null 2>&1; then
+          echo "✅ Usando Vite global"
+          vite build --mode production
+        
+        # Método 4: Última tentativa com npm run
         else
-          echo "❌ Script 'build' não encontrado. Tentando executar Vite diretamente..."
-          
-          # Tenta executar Vite diretamente
-          if [ -f "node_modules/.bin/vite" ]; then
-            echo "Executando Vite diretamente..."
-            ./node_modules/.bin/vite build --mode production
-          else
-            echo "Instalando Vite globalmente e executando..."
-            npm install -g vite
-            vite build --mode production
-          fi
+          echo "⚠️ Tentando npm run build como último recurso..."
+          npm run build
         fi
         
         echo "✅ Build concluído!"
