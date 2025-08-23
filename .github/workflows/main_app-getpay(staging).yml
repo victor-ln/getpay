@@ -23,7 +23,8 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_mysql
+        # MUDANÇA PRINCIPAL: Trocado pdo_mysql por pdo_pgsql para alinhar com o ambiente de produção
+        extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql
         tools: composer
         coverage: none # Desabilitar Xdebug para performance
         cache: 'composer'
@@ -32,38 +33,34 @@ jobs:
     - name: Install Composer dependencies
       run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev
 
-    # NOVO PASSO: Preparar o arquivo .env
-    # Copia .env.example para .env para que os comandos artisan funcionem.
-    # As variáveis de ambiente do Azure irão sobrescrever estes valores em tempo de execução.
+    # Passo 4: Preparar o arquivo .env
     - name: Prepare .env file
       run: cp .env.example .env
 
-    # NOVO PASSO: Gerar a chave da aplicação Laravel
+    # Passo 5: Gerar a chave da aplicação Laravel
     - name: Generate Laravel Application Key
       run: php artisan key:generate
 
-    # Passo 4: Configurar o ambiente Node.js
+    # Passo 6: Configurar o ambiente Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
 
-    # Passo 5: Instalar dependências do NPM
+    # Passo 7: Instalar dependências do NPM
     - name: Install NPM dependencies
       run: npm install
 
-    # Passo 6: Compilar os assets (CSS/JS)
+    # Passo 8: Compilar os assets (CSS/JS)
     - name: Build with NPM
       run: npm run build
 
-    # Passo 7: Remover a pasta node_modules
-    # Esta pasta é necessária para o build, mas não para a execução em produção.
-    # Removê-la reduz drasticamente o tamanho do pacote de deploy.
+    # Passo 9: Remover a pasta node_modules
     - name: Remove node_modules
       run: rm -rf node_modules
 
-    # Passo 8: Fazer o deploy para o Azure Web App
+    # Passo 10: Fazer o deploy para o Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
