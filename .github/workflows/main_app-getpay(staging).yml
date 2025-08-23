@@ -9,6 +9,10 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      AZURE_WEBAPP_APP_NAME: 'app-getpay'
+      AZURE_WEBAPP_SLOT_NAME: 'staging'
+
     steps:
     # Passo 1: Clonar o repositório
     - name: Checkout code
@@ -22,13 +26,21 @@ jobs:
         extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_mysql
         tools: composer
         coverage: none # Desabilitar Xdebug para performance
-        # NOVO: Adiciona cache para as dependências do Composer
         cache: 'composer'
 
     # Passo 3: Instalar dependências do Composer (apenas para produção)
     - name: Install Composer dependencies
-      # ATUALIZADO: Adicionada a flag --no-dev para instalar apenas pacotes de produção
       run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader --no-dev
+
+    # NOVO PASSO: Preparar o arquivo .env
+    # Copia .env.example para .env para que os comandos artisan funcionem.
+    # As variáveis de ambiente do Azure irão sobrescrever estes valores em tempo de execução.
+    - name: Prepare .env file
+      run: cp .env.example .env
+
+    # NOVO PASSO: Gerar a chave da aplicação Laravel
+    - name: Generate Laravel Application Key
+      run: php artisan key:generate
 
     # Passo 4: Configurar o ambiente Node.js
     - name: Setup Node.js
@@ -45,17 +57,17 @@ jobs:
     - name: Build with NPM
       run: npm run build
 
-    # NOVO E MAIS IMPORTANTE PASSO: Remover a pasta node_modules
+    # Passo 7: Remover a pasta node_modules
     # Esta pasta é necessária para o build, mas não para a execução em produção.
     # Removê-la reduz drasticamente o tamanho do pacote de deploy.
     - name: Remove node_modules
       run: rm -rf node_modules
 
-    # Passo 7: Fazer o deploy para o Azure Web App
+    # Passo 8: Fazer o deploy para o Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'app-getpay'
-        slot-name: 'staging'
+        app-name: ${{ env.AZURE_WEBAPP_APP_NAME }}
+        slot-name: ${{ env.AZURE_WEBAPP_SLOT_NAME }}
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
         package: .
