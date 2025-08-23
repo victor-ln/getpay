@@ -20,15 +20,17 @@ chmod -R 775 /home/site/wwwroot/storage
 chmod -R 775 /home/site/wwwroot/bootstrap/cache
 
 # Copia a configuração customizada do Nginx
-echo "Copiando configuração do Nginx..."
-if [ -f "/home/site/wwwroot/default" ]; then
-    cp /home/site/wwwroot/default /etc/nginx/sites-available/default
-    cp /home/site/wwwroot/default /etc/nginx/sites-enabled/default
+# echo "Copiando configuração do Nginx..."
+# if [ -f "/home/site/wwwroot/default" ]; then
+#     cp /home/site/wwwroot/default /etc/nginx/sites-available/default
+#     cp /home/site/wwwroot/default /etc/nginx/sites-enabled/default
     
-    # Testa a configuração do Nginx antes de recarregar (ótima prática!)
-    nginx -t && service nginx reload || echo "ERRO: Falha ao recarregar o Nginx. Verifique a configuração."
-else
-    echo "AVISO: Arquivo de configuração 'default' do Nginx não encontrado. Usando configuração padrão do Azure."
-fi
+#     # Testa a configuração do Nginx antes de recarregar (ótima prática!)
+#     nginx -t && service nginx reload || echo "ERRO: Falha ao recarregar o Nginx. Verifique a configuração."
+# else
+#     echo "AVISO: Arquivo de configuração 'default' do Nginx não encontrado. Usando configuração padrão do Azure."
+# fi
+
+php artisan storage:link
 
 echo "Script de inicialização concluído."
