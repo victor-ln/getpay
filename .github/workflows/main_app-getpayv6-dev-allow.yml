@@ -32,7 +32,6 @@ jobs:
       run: composer clear-cache
 
     # Passo 4: Instalar dependências do Composer
-    # IMPORTANTE: Removemos --no-cache para evitar problemas de dependências
     - name: Install Composer dependencies
       run: |
         composer validate
@@ -77,15 +76,13 @@ jobs:
         rm -rf .git
         rm -f .env
         rm -f bootstrap/cache/config.php
-        
-        # Remove arquivos de desenvolvimento
         rm -f package.json
         rm -f package-lock.json
         rm -f webpack.mix.js
         rm -f vite.config.js
         rm -rf tests
 
-    
+    # Passo 12: Criar arquivo de versão
     - name: Create version file
       run: echo "$(date '+%Y-%m-%d %H:%M:%S') - Commit: ${{ github.sha }}" > version.txt
 
