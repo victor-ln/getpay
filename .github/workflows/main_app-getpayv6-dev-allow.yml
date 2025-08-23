@@ -5,22 +5,16 @@ on:
     branches:
       - main
 
-env:
-  # Variáveis de ambiente para build
-  NODE_ENV: production
-  APP_ENV: production
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+    # Passo 1: Fazer o checkout do código
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        # Garante que todos os arquivos sejam baixados
-        fetch-depth: 0
 
+    # Passo 2: Configurar o ambiente PHP
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -29,247 +23,47 @@ jobs:
         tools: composer:v2
         coverage: none
 
-    - name: Validate composer.json
-      run: composer validate --strict
-
-    - name: Get Composer cache directory
-      id: composer-cache
-      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
+    # Passo 3: Cache das dependências do Composer
     - name: Cache Composer dependencies
       uses: actions/cache@v3
       with:
-        path: ${{ steps.composer-cache.outputs.dir }}
+        path: vendor
         key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
         restore-keys: ${{ runner.os }}-composer-
 
+    # Passo 4: Instalar dependências do Composer
     - name: Install Composer dependencies
-      run: |
-        composer install \
-          --prefer-dist \
-          --no-dev \
-          --no-progress \
-          --no-interaction \
-          --optimize-autoloader \
-          --classmap-authoritative
+      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
 
+    # Passo 5: Configurar o ambiente Node.js com cache
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-        # Cache baseado no package-lock.json
-        cache-dependency-path: package-lock.json
 
-    - name: Verify Node.js and npm versions
-      run: |
-        echo "Node.js version: $(node --version)"
-        echo "npm version: $(npm --version)"
-
-    - name: Clean npm cache
-      run: npm cache clean --force
-
+    # Passo 6: Instalar dependências NPM de forma limpa
     - name: Install NPM dependencies
-      run: |
-        echo "📦 Instalando dependências NPM..."
-        
-        # Remove node_modules se existir para garantir instalação limpa
-        rm -rf node_modules package-lock.json
-        
-        # Reinstala tudo do zero
-        npm install
-        
-        # Verifica se as dependências principais estão presentes
-        echo "Verificando dependências críticas..."
-        npm list --depth=0 | grep -E "(vite|laravel-vite-plugin)" || echo "⚠️ Dependências do Vite podem estar faltando"
-        
-        # Força instalação das dependências do Vite se não estiverem presentes
-        if ! npm list vite >/dev/null 2>&1; then
-          echo "Forçando instalação do Vite..."
-          npm install vite laravel-vite-plugin --save-dev --force
-        fi
-        
-        # Verifica binários disponíveis
-        echo "Binários instalados:"
-        ls -la node_modules/.bin/ | head -10
+      run: npm ci
 
-    - name: Verify Vite configuration
-      run: |
-        echo "Verificando arquivos de configuração..."
-        ls -la vite.config.* || echo "Nenhum arquivo vite.config encontrado"
-        ls -la package.json
-        
-        # Mostra o conteúdo completo do package.json
-        echo "=== CONTEÚDO DO PACKAGE.JSON ==="
-        cat package.json
-        
-        # Verifica se o script build existe
-        if ! grep -q '"build"' package.json; then
-          echo "❌ Script 'build' não encontrado no package.json!"
-          echo "Adicionando script build..."
-          
-          # Backup do package.json original
-          cp package.json package.json.backup
-          
-          # Adiciona script build usando jq
-          if command -v jq >/dev/null 2>&1; then
-            jq '.scripts.build = "vite build"' package.json > package.json.tmp && mv package.json.tmp package.json
-          else
-            # Fallback sem jq - adiciona manualmente
-            sed -i 's/"scripts": {/"scripts": {\n    "build": "vite build",/' package.json
-          fi
-          
-          echo "✅ Script build adicionado!"
-          echo "Novo conteúdo dos scripts:"
-          grep -A10 '"scripts"' package.json
-        fi
+    # Passo 7: Compilar os assets com Vite
+    - name: Build assets with Vite
+      run: npm run build
 
-    - name: Prepare Laravel environment
+    # Passo 8: Preparar o ambiente Laravel para produção (limpeza)
+    - name: Prepare Laravel environment for production
       run: |
-        # Cria .env para build (não será usado em produção)
-        cp .env.example .env
-        
-        # Gera chave temporária para build
-        php artisan key:generate
-        
-        # Limpa caches
+        rm -f .env
         php artisan config:clear
-        php artisan cache:clear
         php artisan view:clear
         php artisan route:clear
 
-    - name: Verify input files exist
-      run: |
-        echo "Verificando arquivos de entrada do Vite..."
-        ls -la resources/css/ || echo "Pasta resources/css não encontrada"
-        ls -la resources/js/ || echo "Pasta resources/js não encontrada"
-        ls -la resources/assets/ || echo "Pasta resources/assets não encontrada"
-        
-        # Lista todos os arquivos que o Vite deveria processar
-        find resources -name "*.js" -o -name "*.css" -o -name "*.scss" | head -20
-
-    - name: Install Vite if missing
-      run: |
-        echo "🔍 Verificando instalação do Vite..."
-        
-        # Verifica se Vite existe no node_modules
-        if [ ! -f "node_modules/.bin/vite" ]; then
-          echo "❌ Vite não encontrado no node_modules. Instalando..."
-          
-          # Instala Vite e dependências relacionadas
-          npm install --save-dev vite laravel-vite-plugin
-          
-          # Verifica se foi instalado corretamente
-          if [ -f "node_modules/.bin/vite" ]; then
-            echo "✅ Vite instalado com sucesso!"
-          else
-            echo "❌ Falha ao instalar Vite. Tentando instalação global..."
-            npm install -g vite
-          fi
-        else
-          echo "✅ Vite já está instalado!"
-        fi
-        
-        # Lista binários disponíveis para debug
-        echo "Binários disponíveis:"
-        ls -la node_modules/.bin/ | grep -E "(vite|laravel)" || echo "Nenhum binário vite encontrado"
-
-    - name: Build assets with Vite
-      run: |
-        echo "🏗️ Iniciando build do Vite..."
-        
-        # Define ambiente de produção
-        export NODE_ENV=production
-        export APP_ENV=production
-        
-        # Remove build anterior se existir
-        rm -rf public/build
-        
-        # Método 1: Tenta usar o binário local
-        if [ -f "node_modules/.bin/vite" ]; then
-          echo "✅ Usando Vite local (node_modules/.bin/vite)"
-          ./node_modules/.bin/vite build --mode production
-        
-        # Método 2: Tenta usar npx
-        elif command -v npx >/dev/null 2>&1; then
-          echo "✅ Usando npx vite"
-          npx vite build --mode production
-        
-        # Método 3: Tenta usar Vite global
-        elif command -v vite >/dev/null 2>&1; then
-          echo "✅ Usando Vite global"
-          vite build --mode production
-        
-        # Método 4: Última tentativa com npm run
-        else
-          echo "⚠️ Tentando npm run build como último recurso..."
-          npm run build
-        fi
-        
-        echo "✅ Build concluído!"
-
-    - name: Verify Vite build output
-      run: |
-        echo "📁 Verificando arquivos gerados pelo Vite..."
-        
-        if [ -d "public/build" ]; then
-          echo "✅ Diretório public/build existe"
-          ls -la public/build/
-          
-          if [ -f "public/build/manifest.json" ]; then
-            echo "✅ manifest.json encontrado!"
-            echo "Conteúdo do manifest:"
-            cat public/build/manifest.json | head -20
-          else
-            echo "❌ manifest.json NÃO encontrado!"
-            echo "Arquivos no diretório build:"
-            find public/build -type f | head -20
-            exit 1
-          fi
-        else
-          echo "❌ Diretório public/build NÃO existe!"
-          exit 1
-        fi
-
-    - name: Optimize Laravel for production
-      run: |
-        # Remove .env temporário (Azure usará suas próprias variáveis)
-        rm -f .env
-        
-        # Otimizações finais
-        composer dump-autoload --optimize --classmap-authoritative
-
+    # Passo 9: Empacotar a aplicação para o deploy
+    # Este passo cria um zip que inclui 'vendor/' e 'public/build/'
     - name: Create deployment package
-      run: |
-        echo "📦 Criando pacote de deployment..."
-        
-        # Lista arquivos que serão incluídos
-        echo "Arquivos principais a incluir:"
-        ls -la vendor/ public/build/ || echo "Verificando estrutura..."
-        
-        # Cria zip excluindo arquivos desnecessários
-        zip -r deployment.zip . \
-          -x ".git/*" \
-          -x ".github/*" \
-          -x "node_modules/*" \
-          -x ".env*" \
-          -x "*.log" \
-          -x "storage/logs/*" \
-          -x "storage/framework/cache/*" \
-          -x "storage/framework/sessions/*" \
-          -x "storage/framework/views/*" \
-          -x "tests/*" \
-          -x "phpunit.xml" \
-          -x ".phpunit.result.cache"
-        
-        echo "📊 Tamanho do pacote:"
-        ls -lh deployment.zip
+      run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*"
 
-    - name: Verify deployment package
-      run: |
-        echo "🔍 Verificando conteúdo do pacote..."
-        unzip -l deployment.zip | grep -E "(vendor|public/build|manifest.json)" || echo "Verificando estrutura..."
-
+    # Passo 10: Fazer o deploy para a Azure Web App
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
@@ -277,5 +71,3 @@ jobs:
         slot-name: 'production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
         package: './deployment.zip'
-        # Configurações adicionais para o deploy
-        clean: true
