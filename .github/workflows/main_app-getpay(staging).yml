@@ -3,33 +3,32 @@ name: Deploy PHP App to Azure Web App
 on:
   push:
     branches:
-      
-main   # dispara o deploy quando houver push na branch main
+      - main   
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+    jobs:
+      build-and-deploy:
+        runs-on: ubuntu-latest
 
-    steps:
-      # Passo 1 - Clonar o repositório
-      
-name: Checkout code
-      uses: actions/checkout@v4
+        steps:
+          # Passo 1 - Clonar o repositório
+          
+    name: Checkout code
+          uses: actions/checkout@v4
 
-      # Passo 2 - Configurar PHP (opcional, mas útil para validar código)
-      
-name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
+          # Passo 2 - Configurar PHP (opcional, mas útil para validar código)
+          
+    name: Setup PHP
+          uses: shivammathur/setup-php@v2
+          with:
+            php-version: '8.2'
 
-      # Passo 3 - Deploy no Azure Web App
-      
-name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: app-getpay/staging        
-        slot-name: staging
-        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
+          # Passo 3 - Deploy no Azure Web App
+          
+    name: Deploy to Azure Web App
+          uses: azure/webapps-deploy@v2
+          with:
+            app-name: app-getpay/staging        
+            slot-name: staging
+            publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
 
       
