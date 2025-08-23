@@ -42,19 +42,16 @@ jobs:
     - name: Build assets with Vite
       run: npm run build
 
-    - name: Verify build output
-      run: |
-        echo "Verificando se os assets foram compilados:"
-        ls -la public/build/ || echo "Pasta build não encontrada"
-        ls -la public/build/manifest.json || echo "Manifest.json não encontrado"
-
-    - name: Clean up for deployment
-      run: |
-        rm -rf node_modules
-        rm -f .env
-        rm -rf .git
-        rm -rf tests
-        rm -f package-lock.json
+    # =======================================================
+    # --- [CORRECTION] START: PACKAGE THE APPLICATION ---
+    # =======================================================
+    # This new step creates a clean zip file for deployment, including
+    # the 'vendor' and 'public/build' directories but excluding development files.
+    - name: Create deployment package
+      run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*" -x ".env" -x "tests/*" -x "package-lock.json"
+    # =======================================================
+    # --- [CORRECTION] END: PACKAGE THE APPLICATION ---
+    # =======================================================
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
@@ -62,4 +59,5 @@ jobs:
         app-name: 'app-getpayv6-dev-allow'
         slot-name: 'production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
-        package: .
+        # [MODIFIED] Point the package to the zip file we just created
+        package: './deployment.zip'
