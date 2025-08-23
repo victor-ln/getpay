@@ -32,4 +32,4 @@ cp /home/site/wwwroot/default /etc/nginx/sites-enabled/default
 echo "Recarregando o Nginx..."
 service nginx reload
 
-echo "Script de inicialização concluído."
+echo "Script de nginx inicialização concluído."
