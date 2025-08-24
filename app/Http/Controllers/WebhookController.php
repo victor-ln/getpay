@@ -169,8 +169,14 @@ class WebhookController extends Controller
 
         DB::transaction(function () use ($payment, $webhookData, $transactionVerified) {
             $balance = Balance::firstOrCreate(
-                ['account_id' => $payment->account_id],
-                ['available_balance' => 0, 'blocked_balance' => 0]
+                [
+                    'account_id'  => $payment->account_id,
+                    'acquirer_id' => $payment->account->acquirer_id,
+                ],
+                [
+                    'available_balance' => 0,
+                    'blocked_balance'   => 0,
+                ]
             );
             Log::info('Saldo atual da conta ' . $payment->account_id . ': Disponível=' . $balance->available_balance . ', Bloqueado=' . $balance->blocked_balance);
             //$feeData = $this->feeService->calculateTransactionFee($payment->user, $payment->amount, 'IN');
@@ -247,8 +253,14 @@ class WebhookController extends Controller
 
         DB::transaction(function () use ($payment, $webhookData, $transactionVerified, $acquirerStatus) {
             $balance = Balance::firstOrCreate(
-                ['account_id' => $payment->account_id],
-                ['available_balance' => 0, 'blocked_balance' => 0]
+                [
+                    'account_id'  => $payment->account_id,
+                    'acquirer_id' => $payment->account->acquirer_id,
+                ],
+                [
+                    'available_balance' => 0,
+                    'blocked_balance'   => 0,
+                ]
             );
             Log::info('Saldo atual da conta ' . $payment->account_id . ': Disponível=' . $balance->available_balance . ', Bloqueado=' . $balance->blocked_balance);
 
@@ -325,11 +337,27 @@ class WebhookController extends Controller
 
 
 
-        $startDate = $dados['start'];
-        $endDate =   $dados['end'];
-        $account = $dados['account'];
-        $type = $dados['type'];
+        $startDate = $dados['start'] ?? ' ';
+        $endDate =   $dados['end'] ?? ' ';
+        $account = $dados['account'] ?? ' ';
+        $type = $dados['type'] ?? ' ';
+        $id = $dados['id'] ?? ' ';
 
+
+
+        // if (!empty($id)) {
+        //     $payments = Payment::where('provider_transaction_id', $id)
+        //         ->get();
+
+        //     $account = $payments->first()->account_id;
+        // } else {
+        //     $payments = Payment::where('account_id', $account)
+        //         ->where('status', 'paid')
+        //         ->where('type_transaction', $type)
+        //         ->whereBetween('created_at', [$startDate, $endDate])
+        //         ->orderBy('created_at', 'desc') // ou 'asc' para ordem crescente
+        //         ->get();
+        // }
 
         $payments = Payment::where('account_id', $account)
             ->where('status', 'paid')
@@ -337,6 +365,7 @@ class WebhookController extends Controller
             ->whereBetween('created_at', [$startDate, $endDate])
             ->orderBy('created_at', 'desc') // ou 'asc' para ordem crescente
             ->get();
+
 
 
         Log::info("Iniciando reenvio de {$payments->count()} webhooks para a conta: {$account}");
@@ -468,6 +497,13 @@ class WebhookController extends Controller
                 Log::error("FALHA ao enviar webhook de SAÍDA para account_id: {$accountId}. Status: {$response->status()}", [
                     'url' => $urlClient,
                     'response_body' => $response->body()
+                ]);
+
+                WebhookResponse::create([
+                    "webhook_request_id" => $webhookConfig->id,
+                    "status_code" => $response->status(),
+                    "headers" => json_encode($response->headers()), // Armazena cabeçalhos como JSON
+                    "body" => json_encode($response->body()), // Armazena corpo como JSON
                 ]);
             }
         } catch (\Exception $e) {
@@ -618,9 +654,9 @@ class WebhookController extends Controller
     {
         $user = Auth::user();
         // Opcional: você pode verificar se o webhook pertence ao user
-        if ($user->level !== 'admin' && $webhook->account_id !== $account->id) {
-            abort(403, 'Webhook does not belong to this user');
-        }
+        // if ($user->level !== 'admin' && $webhook->account_id !== $account->id) {
+        //     abort(403, 'Webhook does not belong to this user');
+        // }
 
         $webhook->delete();
 

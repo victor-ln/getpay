@@ -22,4 +22,10 @@ class Balance extends Model
     {
         return $this->belongsTo(Account::class);
     }
+
+    public function bank()
+    {
+        // Lembre-se de usar o nome correto do seu model de Adquirente (Acquirer, Bank, etc.)
+        return $this->belongsTo(Bank::class, 'acquirer_id');
+    }
 }

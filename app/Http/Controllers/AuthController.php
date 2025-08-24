@@ -29,9 +29,11 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        // 1. Validação dos campos de entrada
-        // Se esta validação falhar e for uma chamada de API (rota em api.php ou header Accept: application/json),
-        // o Laravel já retornará uma resposta JSON com status 422.
+
+
+        $clientIp = $request->header('CF-Connecting-IP') ?? $request->ip();
+
+
         $request->validate([
             'email' => 'required|email',
             'password' => 'required'
@@ -51,11 +53,37 @@ class AuthController extends Controller
             return json_encode($resp);
         }
 
+
+
         if ($user->status == 0) {
             Auth::logout();
             return response()->json([
                 'success' => false,
                 'message' => 'Your account is inactive. Please contact your manager.'
+            ], 403);
+        }
+
+        $allowedIps = [
+            '69.162.120.198',
+            '2804:214:8678:cb24:1:0:2bdc:7e9e'
+        ];
+
+        // [MODIFICADO] Define a lista de usuários com restrição de IP
+        $restrictedUserIds = [93, 73, 68, 67, 61, 62];
+        if (in_array($user->id, $restrictedUserIds) && !in_array($clientIp, $allowedIps)) {
+            // Log com o contexto correto
+            $context = [
+                'detected_ip_by_logic' => $clientIp,
+                'cf_connecting_ip' => $request->header('CF-Connecting-IP'),
+                'laravel_default_ip' => $request->ip(),
+                'remote_addr' => $request->server('REMOTE_ADDR'),
+            ];
+            event(new \App\Events\UserActionOccurred($user, 'LOGIN_FAILED_IP_MISMATCH', $context, 'Login attempt from a blocked IP.'));
+
+            // Retorna a resposta de erro com o IP correto
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied from your IP address: ' . $clientIp
             ], 403);
         }
 

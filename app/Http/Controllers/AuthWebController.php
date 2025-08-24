@@ -11,9 +11,6 @@ class AuthWebController extends Controller
 {
     public function loginForm()
     {
-
-
-
         if (Auth::check()) {
             return redirect()->intended('dashboard');
         }
@@ -23,6 +20,8 @@ class AuthWebController extends Controller
     // Processar login
     public function login(Request $request)
     {
+
+
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -42,8 +41,10 @@ class AuthWebController extends Controller
                 ]);
             }
 
-            // Se o usuário logado for um Sócio (Partner)
-            if ($user->isPartner()) {
+
+
+
+            if ($user->isAdmin()) {
                 // Redireciona para o dashboard de sócios que criamos
                 return redirect()->route('partner.dashboard');
             }

@@ -44,14 +44,21 @@ class PartnerController extends Controller
 
         $totalNetProfit = \App\Models\Payment::where('created_at', '>=', $startDate)
             ->whereIn('status', ['paid', 'refunded'])
+            // ✅ ADICIONADO: Garante que a soma do lucro total exclua as mesmas contas da lista.
+            ->whereNotIn('account_id', [5, 44])
             ->sum(DB::raw('fee - cost'));
+
+
+
+
+
 
 
         // --- DADOS POR CONTA (PARA A LISTA DETALHADA) ---
 
         // 3. A nova query principal, começando por Account
         $accountSummariesQuery = \App\Models\Account::with([
-            'balance', // Carrega o saldo
+            'balances', // Carrega o saldo
             'feeProfiles' => function ($query) { // Carrega as taxas ativas
                 $query->where('status', 'active');
             },
@@ -85,21 +92,21 @@ class PartnerController extends Controller
 
         $banksWithBalance = [];
 
-        foreach ($banks as $bank) {
-            $dados = $bank->toArray();
-            $dados['token'] = $this->getToken($dados);
+        // foreach ($banks as $bank) {
+        //     $dados = $bank->toArray();
+        //     $dados['token'] = $this->getToken($dados);
 
-            $response = $this->getBalance($dados);
+        //     $response = $this->getBalance($dados);
 
-            $banksWithBalance[] = [
-                'id' => $bank->id,
-                'name' => $bank->name,
-                'balance' => $response['data']['balance'] ?? 0,
-                'balance_provisioned' => $response['data']['balanceProvisioned'] ?? 0,
-                'currency' => $response['data']['currency'] ?? 'BRL',
-                'status_code' => $response['statusCode'] ?? null
-            ];
-        }
+        //     $banksWithBalance[] = [
+        //         'id' => $bank->id,
+        //         'name' => $bank->name,
+        //         'balance' => $response['data']['balance'] ?? 0,
+        //         'balance_provisioned' => $response['data']['balanceProvisioned'] ?? 0,
+        //         'currency' => $response['data']['currency'] ?? 'BRL',
+        //         'status_code' => $response['statusCode'] ?? null
+        //     ];
+        // }
 
 
         return view('partners.dashboard', compact(

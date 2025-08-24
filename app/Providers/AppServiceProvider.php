@@ -8,7 +8,7 @@ use App\View\Composers\MenuComposer;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\URL;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,11 +25,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-
-        \Log::info('REDIS_PORT value: ' . env('REDIS_PORT'));
-        \Log::info('REDIS_PORT type: ' . gettype(env('REDIS_PORT')));
-        \Log::info('Config redis port: ' . config('database.redis.default.port'));
-
+        Request::macro('ip', function () {
+            // Se o header CF-Connecting-IP existir, use-o como a fonte da verdade.
+            if ($this->header('CF-Connecting-IP')) {
+                return $this->header('CF-Connecting-IP');
+            }
+            // Se não, usa o método original do Laravel para encontrar o IP.
+            return $this->getClientIp();
+        });
 
         if ($this->app->environment('production')) { // Ou use $this->app->environment('production')
             URL::forceScheme('https');

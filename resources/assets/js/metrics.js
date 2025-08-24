@@ -6,14 +6,12 @@ $(document).ready(function () {
     function updateMetrics(period, accountId) {
         // Validação final para garantir que não fazemos chamadas inválidas
         if (!period || !accountId) {
-            console.error(
-                "Faltando período ou ID da conta. Abortando a chamada de API.",
-            );
+            console.error("Missing period or account ID. Aborting API call.");
             return;
         }
 
         $("#periodIndicator").html(
-            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Carregando...',
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...',
         );
 
         axios

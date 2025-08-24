@@ -58,6 +58,8 @@ class PaymentService
             // Admin/Partner: sem verificação de mínimo
             $minAccount = 0; // ou qualquer valor padrão
             $account = $user->accounts()->first();
+            $minAccount = $account->min_amount_transaction;
+            $maxAccount = $account->max_amount_transaction;
         } else {
             // Usuário comum: deve ter conta associada
             $account = $user->accounts()->first();
@@ -67,12 +69,14 @@ class PaymentService
             }
 
             $minAccount = $account->min_amount_transaction;
+            $maxAccount = $account->max_amount_transaction;
         }
 
 
 
         // Garanta um piso mínimo absoluto para o sistema
         $effectiveMinAmount = max(0.01, (float) $minAccount);
+        $maxAmount = max(0.01, (float) $maxAccount);
 
 
 
@@ -80,7 +84,7 @@ class PaymentService
         // Validate input data
         $validator = Validator::make($data, [
             'externalId' => 'required|string|unique:payments,external_payment_id',
-            'amount' => 'required|numeric|min:' . $effectiveMinAmount,
+            'amount' => 'required|numeric|min:' . $effectiveMinAmount . '|max:' . $maxAmount,
             'document' => 'required',
             'name' => 'required|string',
             'identification' => 'nullable|string',
@@ -217,9 +221,12 @@ class PaymentService
 
         $data['bank_id'] = $payment->provider_id;
 
+        $user = \App\Models\User::find($payment->user_id);
+        $account = $user->accounts()->first();
 
 
-        $acquirerService = $this->acquirerResolver->resolveAcquirerService($data);
+
+        $acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
 
         // Get token
         $token = $acquirerService->getToken();

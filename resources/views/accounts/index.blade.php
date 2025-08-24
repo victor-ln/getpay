@@ -50,7 +50,7 @@
                         <td>{{ $account->created_at->format('d/m/Y') }}</td>
                         <td>R$ {{ number_format($account->min_amount_transaction, 2, ',', '.') }}</td>
                         <td>R$ {{ number_format($account->max_amount_transaction, 2, ',', '.') }}</td>
-                        <td>{{ $account->acquirer->name == 'lumenpay 1' ? 'Conta nv1' : 'Conta nv2' }}</td>
+                        <td>Bancco 1</td>
 
                         <td>
                             <a href="{{ route('accounts.edit', $account) }}" class="btn btn-sm btn-info">View</a>

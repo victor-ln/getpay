@@ -18,7 +18,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserFeeController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\DB;
+
 use App\Http\Controllers\Api\DashboardController as ApiDashboardController;
 use App\Http\Controllers\FeeProfileController;
 use App\Http\Controllers\PartnerController;
@@ -26,6 +26,7 @@ use App\Http\Controllers\PartnerPayoutMethodController;
 use App\Http\Controllers\PixKeyController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\WithdrawController;
+use App\Models\Account;
 use App\Models\AccountPixKey;
 
 /*
@@ -40,19 +41,15 @@ use App\Models\AccountPixKey;
 */
 
 
-Route::get('/health', function () {
-
-    return response()->json(['status' => 'funcionando a rota health'], 200);
-});
 
 
 Route::get('/', function () {
     return redirect('login');
 });
 
-// Route::get('/register', function () {
-//     return redirect('login');
-// });
+Route::get('/register', function () {
+    return redirect('login');
+});
 
 
 Route::get('/partner/dashboard', [PartnerController::class, 'dashboard'])
@@ -63,8 +60,8 @@ Route::get('/accounts/{account}/history', [PartnerController::class, 'showAccoun
 
 Route::get('/login', [AuthWebController::class, 'loginForm'])->name('login');
 Route::post('/login', [AuthWebController::class, 'login'])->name('login.post');
-Route::get('/register', [AuthWebController::class, 'registerForm'])->name('register');
-Route::post('/register', [AuthWebController::class, 'register']);
+// Route::get('/register', [AuthWebController::class, 'registerForm'])->name('register');
+// Route::post('/register', [AuthWebController::class, 'register']);
 
 // Rota para enviar o link de redefinição de senha
 Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequestForm']);

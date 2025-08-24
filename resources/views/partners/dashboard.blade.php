@@ -19,7 +19,7 @@
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <h5 class="card-title mb-0">
-                            {{ strtolower($bank['name']) == 'lumenpay 1' ? 'CONTA NV1' : 'CONTA NV3' }}
+                            {{ strtolower($bank['name']) }}
                         </h5>
                         @if(($bank['status_code'] ?? 0) == 200)
                         <span class="badge bg-success-subtle text-success rounded-pill">Online</span>
@@ -98,7 +98,7 @@
             {{-- NOVO: Exibição do nome do Banco/Adquirente --}}
             @if($account->acquirer)
             <span class="badge bg-dark fs-6">
-                {{ $account->acquirer->name == 'lumenpay 1' ? 'CONTA NV1' : 'CONTA NV3' }}
+                {{ $account->acquirer->name}}
             </span>
             @endif
         </div>

@@ -111,16 +111,22 @@ class WithdrawService
 
 
         // 3. Verifica se o saldo disponível cobre o débito total.
-        $balance = $this->getUserBalance($account->id);
+        if ($account->total_available_balance < $totalDebitAmount) {
+            $this->logAction($user, self::ACTION_WITHDRAW_INSUFFICIENT_FUNDS, ['requested_total' => $totalDebitAmount, 'available' => $account->total_available_balance]);
+            return ['success' => false, 'message' => 'Total available balance is insufficient to cover amount + fees.'];
+        }
 
-        if ($balance->available_balance < $totalDebitAmount) {
-            $this->logAction($user, self::ACTION_WITHDRAW_INSUFFICIENT_FUNDS, ['requested_total' => $totalDebitAmount, 'available' => $balance->available]);
-            return ['success' => false, 'message' => 'Insufficient funds to cover amount + fees.'];
+        // 2. Segunda verificação: O saldo no adquirente PADRÃO da conta é suficiente?
+        //    Isso usa o outro método que criamos no model Account.
+        $currentAcquirerBalance = $account->getCurrentAcquirerBalance();
+
+        if (!$currentAcquirerBalance || $currentAcquirerBalance->available_balance < $totalDebitAmount) {
+            $this->logAction($user, self::ACTION_WITHDRAW_INSUFFICIENT_FUNDS, ['requested_total' => $totalDebitAmount, 'available_on_current_acquirer' => $currentAcquirerBalance->available_balance ?? 0]);
+            return ['success' => false, 'message' => 'Insufficient funds with the current default acquirer to perform this withdrawal.'];
         }
 
         $payment = null;
         $validatedData['account_id'] = $account->id ?? null;
-
 
 
 
@@ -132,7 +138,10 @@ class WithdrawService
             DB::transaction(function () use ($user, $amountToWithdraw, $fee, $totalDebitAmount, $validatedData, &$payment) {
 
                 $account = $user->accounts()->first();
-                $balanceToUpdate = Balance::where('account_id', $account->id)->lockForUpdate()->firstOrFail();
+                $balanceToUpdate = Balance::where('account_id', $account->id)
+                    ->where('acquirer_id', $account->acquirer_id) // <-- A CONDIÇÃO CHAVE
+                    ->lockForUpdate() // Trava a linha para evitar que outras requisições a alterem
+                    ->firstOrFail();
 
                 $balanceToUpdate->available_balance -= $totalDebitAmount;
                 $balanceToUpdate->blocked_balance += $totalDebitAmount;
@@ -203,7 +212,24 @@ class WithdrawService
         $this->logAction($user, self::ACTION_WITHDRAW_FUNDS_REVERSED, ['payment_id' => $payment->id ?? null, 'amount' => $totalDebitAmount]);
 
         DB::transaction(function () use ($account, $totalDebitAmount, $payment) {
-            $balance = Balance::where('account_id', $account->id)->lockForUpdate()->first();
+
+            // [CORRIGIDO] Buscamos o saldo específico do adquirerente padrão da conta
+            // para garantir que estamos revertendo o saldo da "carteira" correta.
+            $balance = Balance::where('account_id', $account->id)
+                ->where('acquirer_id', $account->acquirer_id) // <-- A CONDIÇÃO CHAVE
+                ->lockForUpdate()
+                ->first();
+
+            // Se, por algum motivo, não encontrarmos um saldo para o adquirente atual,
+            // é melhor parar para evitar inconsistências.
+            if (!$balance) {
+                // Logar um erro crítico aqui
+                Log::error("Attempted to reverse funds for Account #{$account->id} but no balance record found for their default acquirer #{$account->acquirer_id}.");
+                return;
+            }
+
+            // A lógica de reverter o saldo permanece a mesma,
+            // mas agora temos certeza de que está sendo aplicada no registro certo.
             $balance->blocked_balance -= $totalDebitAmount;
             $balance->available_balance += $totalDebitAmount;
             $balance->save();

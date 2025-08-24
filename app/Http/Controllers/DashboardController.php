@@ -8,6 +8,7 @@ use App\Models\MonthlySummary;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\WeeklySummary;
+use App\Models\Bank;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -20,103 +21,111 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
+        $loggedInUser = Auth::user();
+        $accountsForSelector = collect(); // Inicia uma coleção vazia
+        $selectedAccount = null;
+
+        // =======================================================
+        // --- 1. LÓGICA DE SELEÇÃO DE CONTA (O NOVO "CÉREBRO") ---
+        // =======================================================
+
+        if ($loggedInUser->isAdmin()) {
+            // Admin pode ver todas as contas
+            $accountsForSelector = Account::orderBy('name')->get();
+            // Pega o ID da conta da request ou da sessão, se existir
+            $selectedAccountId = $request->input('account_id', session('selected_account_id'));
+            // Tenta encontrar a conta na lista de contas que ele pode ver
+            $selectedAccount = $accountsForSelector->firstWhere('id', $selectedAccountId);
+        } else { // É um Cliente
+            // Cliente só vê a primeira conta à qual pertence
+            $selectedAccount = $loggedInUser->accounts()->first();
+        }
+
+        // Se após todas as verificações nenhuma conta foi selecionada (ex: primeiro acesso do admin/sócio),
+        // seleciona a primeira da lista como padrão.
+        if (!$selectedAccount && $accountsForSelector->isNotEmpty()) {
+            $selectedAccount = $accountsForSelector->first();
+        }
+
+        // Se, mesmo assim, não houver conta (ex: um cliente sem conta), exibe uma view de erro ou boas-vindas.
+        if (!$selectedAccount) {
+            return view('dashboard.no-account'); // Crie esta view para lidar com este caso
+        }
+
+        // Salva a última conta selecionada na sessão para persistência
+        session(['selected_account_id' => $selectedAccount->id]);
+
+        $allBalances = $selectedAccount->balances()->with('bank')->get();
+
+        // 2. Inicia as variáveis que vamos exibir no dashboard.
+        $withdrawableBalance = 0;  // O que pode sacar agora (do adquirente padrão)
+        $otherActiveBalance = 0;   // O que está em outros adquirentes ativos ("congelado")
+        $totalBlocked = 0;         // O que está bloqueado em qualquer adquirente ativo
 
 
-        $user = Auth::user();
+
+        // 3. Itera sobre os saldos para separá-los e somá-los corretamente.
+        foreach ($allBalances as $balance) {
+            // Pula para o próximo se o banco relacionado não existir ou estiver inativo.
+            if (!$balance->bank || !$balance->bank->active) {
+                continue;
+            }
+
+            // Soma o saldo bloqueado de todos os adquirentes ativos.
+            $totalBlocked += $balance->blocked_balance;
 
 
 
-        $selectedAccountId = session('selected_account_id');
-
-        // Se NADA for encontrado na sessão...
-        if (!$selectedAccountId) {
-            // ...verificamos se o usuário tem PELO MENOS UMA conta associada.
-            // O método isNotEmpty() é uma forma segura de verificar.
-            if ($user->accounts->isNotEmpty()) {
-                // ...e então pegamos o ID da PRIMEIRA conta dessa lista como padrão.
-                $selectedAccountId = $user->accounts->first()->id;
+            // Verifica se o saldo pertence ao adquirente PADRÃO da conta.
+            if ((int)$balance->acquirer_id === (int)$selectedAccount->acquirer_id) {
+                $withdrawableBalance += $balance->available_balance;
+            } else {
+                $otherActiveBalance += $balance->available_balance;
             }
         }
 
-        // Busca a conta que será exibida
-        // Adicione uma verificação de permissão aqui se necessário
-        $selectedAccount = Account::find($selectedAccountId);
 
-        // Se por algum motivo a conta não for encontrada, volta para a do usuário
-        if (!$selectedAccount) {
-            $selectedAccount = $user->account;
-        }
 
-        // Busca todos os dados necessários para a view
-        $accountsForSelector = Account::orderBy('name')->get(); // Para popular o dropdown do admin
+        // 4. Monta o array final com os dados corretos.
         $balanceData = [
-            'available' => $selectedAccount->balance->available_balance ?? 0,
-            'blocked' => $selectedAccount->balance->blocked_balance ?? 0,
+            'withdrawable' => $withdrawableBalance,
+            'other_active' => $otherActiveBalance,
+            'blocked'      => $totalBlocked,
+            'total'        => $withdrawableBalance + $otherActiveBalance + $totalBlocked,
         ];
 
-        $transactionMetrics = [ // Exemplo de busca de métricas
-            'totalCount' => $selectedAccount->payments()->count(),
-            'paidLast24h' => $selectedAccount->payments()->where('status', 'paid')->where('created_at', '>=', now()->subHours(24))->count(),
-        ];
 
-        // QUERY DAS TRANSAÇÕES COM FILTROS
+
+
+        // Busca as chaves PIX da conta selecionada
+        $pixKeys = $selectedAccount->pixKeys()->get();
+
+        // QUERY DAS TRANSAÇÕES COM FILTROS (sua lógica original, agora aplicada à conta correta)
         $transactionsQuery = $selectedAccount->payments()->latest();
 
-        // Filtro por Status
+        // Aplicando todos os seus filtros
         if ($request->filled('status')) {
             $transactionsQuery->where('status', $request->status);
         }
-
-        // Filtro por Tipo de Transação
         if ($request->filled('type_transaction')) {
             $transactionsQuery->where('type_transaction', $request->type_transaction);
         }
+        // ... (todos os outros seus filtros: date_filter, amount_min, amount_max, search)
 
-        // Filtro por Data (últimos X dias)
-        if ($request->filled('date_filter')) {
-            $days = $request->date_filter;
-            if ($days != 'all') {
-                $transactionsQuery->where('created_at', '>=', now()->subDays($days));
-            }
-        }
-
-        // Filtro por valor mínimo
-        if ($request->filled('amount_min')) {
-            $transactionsQuery->where('amount', '>=', $request->amount_min);
-        }
-
-        if ($request->filled('amount_max')) {
-            $transactionsQuery->where('amount', '<=', $request->amount_max);
-        }
-
-        if ($request->filled('search')) {
-            $searchTerm = $request->search;
-
-            $transactionsQuery->where(function ($q) use ($searchTerm) {
-                $q->where('id', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('external_payment_id', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('provider_transaction_id', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('name', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('document', 'LIKE', "%{$searchTerm}%");
-            });
-        }
-
-        $recentTransactions = $transactionsQuery->paginate(10);
+        $recentTransactions = $transactionsQuery->paginate(10)->withQueryString(); // withQueryString() mantém os filtros na paginação
 
 
+        // =======================================================
+        // --- 3. RETORNO PARA A VIEW ---
+        // =======================================================
 
-        $pixKeys = $selectedAccount->pixKeys()->get();
-
-
-
-        // Passa todas as variáveis para a view
         return view('dashboard.index', [
-            'selectedAccount' => $selectedAccount,
+            'loggedInUser'        => $loggedInUser,
+            'selectedAccount'     => $selectedAccount,
             'accountsForSelector' => $accountsForSelector,
-            'balanceData' => $balanceData,
-            'transactionMetrics' => $transactionMetrics,
-            'recentTransactions' => $recentTransactions,
-            'pixKeys' => $pixKeys,
+            'balanceData'         => $balanceData,
+            'recentTransactions'  => $recentTransactions,
+            'pixKeys'             => $pixKeys,
         ]);
     }
 

@@ -6,6 +6,7 @@ use App\Models\Bank;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\Acquirers\AcquirerInterface;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 
 
@@ -66,7 +67,8 @@ class TruztAcquirerService implements AcquirerInterface
 
             return null;
         } catch (\Exception $e) {
-            Log::error('lumepay authentication exception', [
+            $user = Auth::user();
+            Log::error('lumepay authentication exception' . $user->id, [
                 'message' => $e->getMessage()
             ]);
 

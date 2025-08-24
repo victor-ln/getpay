@@ -74,7 +74,7 @@ class DubaiAcquirerService implements AcquirerInterface
                 ->post($this->baseUrl . "pix/create-immediate-qrcode", [
                     'externalId' => $data['externalId'],
                     'amount' => (float) $data['amount'],
-                    'document' => $data['document'],
+                    'document' => $this->cleanDocument($data['document']),
                     'name' => $data['name'],
                     'identification' => $data['identification'] ?? 'GETPAY',
                     'expire' => $data['expire'] ?? 3600,
@@ -92,6 +92,8 @@ class DubaiAcquirerService implements AcquirerInterface
                 'amount' => number_format($response->json()['data']['amount'], 2, ',', '.'),
                 'createdAt' => $response->json()['data']['createdAt'],
                 'expire' => $response->json()['data']['expire'],
+                'status' => 'pending',
+                'qrcode' => ''
             );
 
             return [
@@ -113,12 +115,45 @@ class DubaiAcquirerService implements AcquirerInterface
         }
     }
 
+    function cleanDocument($phone)
+    {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Se tiver mais de 9 dígitos, pega apenas os primeiros 9
+        if (strlen($cleanPhone) > 11) {
+            return substr($cleanPhone, 0, 11);
+        }
+
+        // Se tiver entre 1 e 9 dígitos, completa com zeros à esquerda
+        if (strlen($cleanPhone) > 0) {
+            return str_pad($cleanPhone, 11, '0', STR_PAD_LEFT);
+        }
+
+        // Se não tiver nenhum número, retorna vazio
+        return '';
+    }
+
+
+    // https://api.dubai-cash.com/v1/customers/pix/status?externalId=gpwt_689ddddd46967
 
 
     public function createChargeWithdraw(array $data, string $token)
     {
 
         $dados = $data;
+
+        $key = $dados['pixKey'];
+
+        if ($dados['pixKeyType'] == 'PHONE') {
+            // Verifica se já possui +55 no início
+            if (!str_starts_with($dados['pixKey'], '+55')) {
+                $key = '+55' . $dados['pixKey'];
+            } else {
+                $key = $dados['pixKey'];
+            }
+        }
+
+
 
         $randomNumber = mt_rand(100000000000, 999999999999); // 12 dígitos
         $getpay = 'GETPAY ' . $randomNumber;
@@ -137,7 +172,7 @@ class DubaiAcquirerService implements AcquirerInterface
                     'externalId' => $data['externalId'],
                     'name' => $data['name'],
                     'documentNumber' => $data['documentNumber'],
-                    'key' => $data['pixKey'],
+                    'key' => $key,
                     'description' => $data['description'] ?? '',
                     'bank' => $data['bank'] ?? '',
                     'branch' => $data['branch'] ?? '',

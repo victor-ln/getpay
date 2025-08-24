@@ -237,7 +237,7 @@ class UserController extends Controller
 
             if (!empty($request->accounts)) {
                 $account = Account::find($request->accounts);
-                $account->users()->attach($user->id, ['role' => 'owner']);
+                $account->users()->syncWithoutDetaching([$user->id => ['role' => 'owner']]);
             }
         }
 

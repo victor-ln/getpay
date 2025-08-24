@@ -85,7 +85,7 @@ $(document).ready(function () {
         // 2. Validação para garantir que os dados existem
         if (!userDocument || !userName) {
             showToast(
-                "Dados do usuário não encontrados. Por favor, complete seu perfil.",
+                "Please register a document in your user profile.",
                 "danger",
             );
             // Você pode até redirecionar para a página de perfil aqui
@@ -153,7 +153,7 @@ $(document).ready(function () {
         if (isNaN(amount) || amount <= 0)
             return showToast("Digite um valor válido.", "warning");
         if (amount > availableBalance)
-            return showToast("Saldo disponível insuficiente.", "danger");
+            return showToast("Insufficient available balance.", "danger");
 
         // Guarda os dados para o próximo passo
         withdrawalData = {
@@ -258,10 +258,10 @@ $(document).ready(function () {
 
             $("#addPixKeyModal").modal("hide");
             form[0].reset();
-            showToast("Nova chave adicionada e selecionada!", "success");
+            showToast("New key added and selected!", "success");
         } catch (error) {
             showToast(
-                error.response?.data?.message || "Falha ao adicionar chave.",
+                error.response?.data?.message || "Failed to add key.",
                 "danger",
             );
         } finally {

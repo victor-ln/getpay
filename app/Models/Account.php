@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Bank;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Account extends Model
@@ -61,10 +62,7 @@ class Account extends Model
         return $this->hasMany(AccountPixKey::class);
     }
 
-    public function balance()
-    {
-        return $this->hasOne(Balance::class);
-    }
+
 
     public function profitSharingPartners()
     {
@@ -95,5 +93,31 @@ class Account extends Model
         // onde a coluna 'account_id' na tabela 'payments'
         // corresponde ao 'id' desta conta."
         return $this->hasMany(Payment::class);
+    }
+
+    public function balances()
+    {
+        return $this->hasMany(Balance::class, 'account_id');
+    }
+
+    public function getTotalAvailableBalanceAttribute(): float
+    {
+        // Acessa o relacionamento 'balances()' da Conta
+        return $this->balances()
+            // Entra no relacionamento 'bank' de cada saldo
+            // [CORRIGIDO] Usamos 'bank', o nome do método que acabamos de definir no Model Balance
+            ->whereHas('bank', function ($query) {
+                // E filtra para pegar apenas os que estão ativos
+                // [CORRIGIDO] Usando o nome da sua coluna 'active'
+                $query->where('active', true);
+            })
+            // Finalmente, soma o saldo disponível
+            ->sum('available_balance');
+    }
+
+    public function getCurrentAcquirerBalance(): ?Balance
+    {
+        // Retorna o registro de saldo específico do adquirente padrão da conta.
+        return $this->balances()->where('acquirer_id', $this->acquirer_id)->first();
     }
 }

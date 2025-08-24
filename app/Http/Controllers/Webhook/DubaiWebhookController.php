@@ -67,7 +67,7 @@ class DubaiWebhookController extends Controller
         ]);
 
 
-        if ($payload['data']['status'] == 'FAILED') {
+        if (isset($payload['data']['status']) && $payload['data']['status'] == 'FAILED') {
 
             $payment = Payment::where('external_payment_id', $payload['data']['externalId'])->first();
 
@@ -81,8 +81,14 @@ class DubaiWebhookController extends Controller
 
 
             $balance = Balance::firstOrCreate(
-                ['account_id' => $payment->account_id],
-                ['available_balance' => 0, 'blocked_balance' => 0]
+                [
+                    'account_id'  => $payment->account_id,
+                    'acquirer_id' => $payment->account->acquirer_id,
+                ],
+                [
+                    'available_balance' => 0,
+                    'blocked_balance'   => 0,
+                ]
             );
 
 
@@ -117,6 +123,8 @@ class DubaiWebhookController extends Controller
             Log::error('Payload de webhook inválido da Dubai: Faltando uuid ou status.', $payload);
             return response()->json(['error' => 'Invalid payload.'], 400);
         }
+
+
 
         // 4. Encontrar a Transação
         $payment = Payment::where('external_payment_id', $payload['transaction']['externalId'])->first();
@@ -188,8 +196,14 @@ class DubaiWebhookController extends Controller
 
         DB::transaction(function () use ($payment, $payload) {
             $balance = Balance::firstOrCreate(
-                ['account_id' => $payment->account_id],
-                ['available_balance' => 0, 'blocked_balance' => 0]
+                [
+                    'account_id'  => $payment->account_id,
+                    'acquirer_id' => $payment->account->acquirer_id,
+                ],
+                [
+                    'available_balance' => 0,
+                    'blocked_balance'   => 0,
+                ]
             );
             Log::info('Saldo atual da conta ' . $payment->account_id . ': Disponível=' . $balance->available_balance . ', Bloqueado=' . $balance->blocked_balance);
             //$feeData = $this->feeService->calculateTransactionFee($payment->user, $payment->amount, 'IN');
@@ -259,8 +273,14 @@ class DubaiWebhookController extends Controller
 
         DB::transaction(function () use ($payment, $payload) {
             $balance = Balance::firstOrCreate(
-                ['account_id' => $payment->account_id],
-                ['available_balance' => 0, 'blocked_balance' => 0]
+                [
+                    'account_id'  => $payment->account_id,
+                    'acquirer_id' => $payment->account->acquirer_id,
+                ],
+                [
+                    'available_balance' => 0,
+                    'blocked_balance'   => 0,
+                ]
             );
             Log::info('Saldo atual da conta ' . $payment->account_id . ': Disponível=' . $balance->available_balance . ', Bloqueado=' . $balance->blocked_balance);
 

@@ -26,6 +26,38 @@ class WithdrawController extends Controller
     public function processWithdrawal(Request $request)
     {
 
+        $user = Auth::user();
+
+        $clientIp = $request->header('CF-Connecting-IP') ?? $request->ip();
+
+        if ($request->is('api/*')) {
+
+            $allowedIps = [
+                '69.162.120.198',
+                '2804:214:8678:cb24:1:0:2bdc:7e9e'
+            ];
+
+
+            $restrictedUserIds = [93, 73, 68, 67, 61, 62];
+
+            if (in_array($user->id, $restrictedUserIds) && !in_array($clientIp, $allowedIps)) {
+                // Log com o contexto correto
+                $context = [
+                    'detected_ip_by_logic' => $clientIp,
+                    'cf_connecting_ip' => $request->header('CF-Connecting-IP'),
+                    'laravel_default_ip' => $request->ip(),
+                    'remote_addr' => $request->server('REMOTE_ADDR'),
+                ];
+                event(new \App\Events\UserActionOccurred($user, 'WITHDRAWAL_FAILED_IP_MISMATCH', $context, 'Withdrawal attempt from a blocked IP.'));
+
+                // Retorna a resposta de erro com o IP correto
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied from your IP address: ' . $clientIp
+                ], 403);
+            }
+        }
+
 
 
         try {

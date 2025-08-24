@@ -57,18 +57,26 @@
                     <h5 class="card-title m-0">Balance Overview</h5>
                 </div>
                 <div class="card-body">
-                    <small>Available for Withdrawal</small>
-                    <h2 class="display-6 fw-bold my-1" id="available-balance-value" data-balance="{{ $balanceData['available'] ?? 0 }}">
-                        R$ {{ number_format($balanceData['available'] ?? 0, 2, ',', '.') }}
+                    <small>Available for Withdrawal (from default acquirer)</small>
+                    <h2 class="display-6 fw-bold my-1">
+                        R$ {{ number_format($balanceData['withdrawable'] ?? 0, 2, ',', '.') }}
                     </h2>
+
+
+
                     <div class="d-flex justify-content-between mt-3">
-                        <span>Held for Security</span>
+                        <span>Blocked Balance</span>
                         <span>R$ {{ number_format($balanceData['blocked'] ?? 0, 2, ',', '.') }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-1">
+                        <span>Frozen from migration account</span>
+                        <span>R$ {{ number_format($balanceData['other_active'] ?? 0, 2, ',', '.') }}</span>
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between fw-bold">
                         <span>Total Balance</span>
-                        <span>R$ {{ number_format(($balanceData['available'] ?? 0) + ($balanceData['blocked'] ?? 0), 2, ',', '.') }}</span>
+                        <span>R$ {{ number_format($balanceData['total'] ?? 0, 2, ',', '.') }}</span>
                     </div>
                 </div>
             </div>
