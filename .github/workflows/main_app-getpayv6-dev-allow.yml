@@ -68,8 +68,8 @@ jobs:
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'app-getpayv6-dev-allow'
+        app-name: 'app-getpayv7'
         slot-name: 'production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
-        # Aponta para o ficheiro zip que acabámos de criar
+        
         package: './deployment.zip'
