@@ -23,7 +23,7 @@ jobs:
         tools: composer:v2
         coverage: none
 
-    # Passo 3: Cache das dependências do Composer
+    # Passo 3: Cache das dependências do Composer para acelerar o processo
     - name: Cache Composer dependencies
       uses: actions/cache@v3
       with:
@@ -42,7 +42,7 @@ jobs:
         node-version: '18'
         cache: 'npm'
 
-    # Passo 6: Instalar dependências NPM de forma limpa
+    # Passo 6: Instalar dependências NPM de forma limpa e confiável
     - name: Install NPM dependencies
       run: npm ci
 
@@ -51,6 +51,7 @@ jobs:
       run: npm run build
 
     # Passo 8: Preparar o ambiente Laravel para produção (limpeza)
+    # Remove o .env de exemplo, pois a Azure usará as suas próprias variáveis de ambiente
     - name: Prepare Laravel environment for production
       run: |
         rm -f .env
@@ -58,8 +59,8 @@ jobs:
         php artisan view:clear
         php artisan route:clear
 
-    # Passo 9: Empacotar a aplicação para o deploy
-    # Este passo cria um zip que inclui 'vendor/' e 'public/build/'
+    # Passo 9: [A CORREÇÃO] Empacotar a aplicação para o deploy
+    # Este passo cria um zip que inclui as pastas 'vendor/' e 'public/build/'
     - name: Create deployment package
       run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*"
 
@@ -70,4 +71,5 @@ jobs:
         app-name: 'app-getpayv6-dev-allow'
         slot-name: 'production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
+        # Aponta para o ficheiro zip que acabámos de criar
         package: './deployment.zip'
