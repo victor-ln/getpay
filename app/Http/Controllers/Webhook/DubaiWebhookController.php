@@ -198,7 +198,7 @@ class DubaiWebhookController extends Controller
             $balance = Balance::firstOrCreate(
                 [
                     'account_id'  => $payment->account_id,
-                    'acquirer_id' => $payment->account->acquirer_id,
+                    'acquirer_id' => $payment->provider_id,
                 ],
                 [
                     'available_balance' => 0,
@@ -275,7 +275,7 @@ class DubaiWebhookController extends Controller
             $balance = Balance::firstOrCreate(
                 [
                     'account_id'  => $payment->account_id,
-                    'acquirer_id' => $payment->account->acquirer_id,
+                    'acquirer_id' => $payment->provider_id,
                 ],
                 [
                     'available_balance' => 0,
