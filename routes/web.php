@@ -41,6 +41,9 @@ use App\Models\AccountPixKey;
 */
 
 
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok']);
+});
 
 
 Route::get('/', function () {
