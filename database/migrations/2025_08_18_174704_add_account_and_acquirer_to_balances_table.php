@@ -11,8 +11,28 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('balances', function (Blueprint $table) {
-            $table->foreignId('acquirer_id')->nullable()->after('account_id')->constrained('banks')->onDelete('set null');
+        Schema::table('payments', function (Blueprint $table) {
+            // Adiciona a chave estrangeira para a conta.
+            // O Laravel automaticamente cria um índice para esta coluna.
+            $table->foreignId('account_id')
+                ->nullable()
+                ->after('id')
+                ->constrained('accounts')
+                ->onDelete('set null');
+
+            // Adiciona um índice na coluna 'status'.
+            // Isso acelera buscas por pagamentos com um status específico (ex: 'pending', 'paid').
+            $table->index('status');
+
+            // Adiciona um índice em um possível ID de transação externa.
+            // Essencial para localizar rapidamente um pagamento a partir do ID de um gateway.
+            $table->index('external_payment_id');
+            $table->index('provider_transaction_id');
+
+            // Adiciona um índice composto.
+            // Otimiza consultas que filtram por status e ordenam por data,
+            // um caso de uso muito comum para exibir transações recentes.
+            $table->index(['status', 'created_at']);
         });
     }
 
@@ -21,8 +41,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('balances', function (Blueprint $table) {
-            //
+        Schema::table('payments', function (Blueprint $table) {
+            // Remove a chave estrangeira e a coluna
+            $table->dropForeign(['account_id']);
+            $table->dropColumn('account_id');
         });
     }
 };
