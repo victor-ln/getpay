@@ -191,26 +191,33 @@
         <div class="col-lg-4 col-md-6">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between">
-                    <h5 class="card-title m-0">KPIs - Pay In</h5>
+                    <h5 class="card-title m-0">Pay In (Last 24h)</h5>
                     <span class="badge bg-success">IN</span>
                 </div>
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Total Transactions:</span>
-                            <span class="fw-bold">150</span>
+                            <span class="fw-bold">{{ $kpiIn['total_transactions'] }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Total Paid:</span>
-                            <span class="fw-bold text-success">120 (80%)</span>
+                            <span class="fw-bold text-success">
+                                {{ $kpiIn['paid_transactions'] }}
+                                @if($kpiIn['total_transactions'] > 0)
+                                ({{ number_format(($kpiIn['paid_transactions'] / $kpiIn['total_transactions']) * 100, 1) }}%)
+                                @else
+                                (0%)
+                                @endif
+                            </span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Volume Paid:</span>
-                            <span class="fw-bold">R$ 25,450.70</span>
+                            <span class="fw-bold">R$ {{ number_format($kpiIn['paid_volume'], 2, ',', '.') }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Total Fees (Paid):</span>
-                            <span class="fw-bold">R$ 1,234.56</span>
+                            <span class="fw-bold">R$ {{ number_format($kpiIn['total_fees'], 2, ',', '.') }}</span>
                         </li>
                     </ul>
                 </div>
@@ -221,47 +228,56 @@
         <div class="col-lg-4 col-md-6">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between">
-                    <h5 class="card-title m-0">KPIs - Pay Out</h5>
+                    <h5 class="card-title m-0"> Pay Out (Last 24h)</h5>
                     <span class="badge bg-danger">OUT</span>
                 </div>
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Total Transactions:</span>
-                            <span class="fw-bold">85</span>
+                            <span class="fw-bold">{{ $kpiOut['total_transactions'] }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Total Paid:</span>
-                            <span class="fw-bold text-success">80 (94%)</span>
+                            <span class="fw-bold text-success">
+                                {{ $kpiOut['paid_transactions'] }}
+                                @if($kpiOut['total_transactions'] > 0)
+                                ({{ number_format(($kpiOut['paid_transactions'] / $kpiOut['total_transactions']) * 100, 1) }}%)
+                                @else
+                                (0%)
+                                @endif
+                            </span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Volume Paid:</span>
-                            <span class="fw-bold">R$ 18,210.30</span>
+                            <span class="fw-bold">R$ {{ number_format($kpiOut['paid_volume'], 2, ',', '.') }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between">
                             <span>Total Fees (Paid):</span>
-                            <span class="fw-bold">R$ 456.78</span>
+                            <span class="fw-bold">R$ {{ number_format($kpiOut['total_fees'], 2, ',', '.') }}</span>
                         </li>
                     </ul>
                 </div>
             </div>
         </div>
 
-        {{-- KPI Card 3: PROFIT SUMMARY --}}
+        {{-- KPI Card 3: PROFIT SUMMARY (Apenas para Admins) --}}
+        @if (Auth::user()->isAdmin() && $profitSummary)
         <div class="col-lg-4 col-md-12">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="card-title m-0">Profit Summary</h5>
+                    <h5 class="card-title m-0">Profit Summary (Last 24h)</h5>
                 </div>
                 <div class="card-body text-center">
                     <h6 class="text-muted">Total Fees (IN + OUT)</h6>
-                    <p class="h4">R$ 1,691.34</p>
+                    <p class="h4">R$ {{ number_format($profitSummary['total_fees'], 2, ',', '.') }}</p>
                     <hr>
-                    <h6 class="text-muted">Profit for Division (Fee - Cost)</h6>
-                    <p class="h4 text-primary fw-bold">R$ 1,580.20</p>
+                    <h6 class="text-muted">Net Profit (Fee - Cost)</h6>
+                    <p class="h4 text-primary fw-bold">R$ {{ number_format($profitSummary['net_profit'], 2, ',', '.') }}</p>
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
 
@@ -380,10 +396,11 @@
                 <thead>
                     <tr>
                         <th>GPID</th>
-                        <th>Provider ID</th>
                         <th>Transaction ID</th>
                         <th>External ID</th>
+                        @if (Auth::check() && Auth::user()->level == 'admin')
                         <th>Client</th>
+                        @endif
                         <th>Type</th>
                         <th>Amount</th>
                         <th>Fee</th>
@@ -401,9 +418,9 @@
                     @forelse ($recentTransactions as $transaction)
                     <tr>
                         <td><strong>{{ $transaction->id }}</strong></td>
-                        <td>{{ $transaction->provider_id ?? 'N/A' }}</td>
                         <td>{{ $transaction->provider_transaction_id ?? 'N/A' }}</td>
                         <td>{{ $transaction->external_payment_id ?? 'N/A' }}</td>
+                        @if (Auth::check() && Auth::user()->level == 'admin')
                         <td>
                             @if ($transaction->user)
                             <a href="{{ route('users.edit', $transaction->user->id) }}">
@@ -413,6 +430,7 @@
                             N/A
                             @endif
                         </td>
+                        @endif
                         <td>
                             @if ($transaction->type_transaction == 'IN')
                             <span class="badge bg-label-primary me-1">Pay In</span>

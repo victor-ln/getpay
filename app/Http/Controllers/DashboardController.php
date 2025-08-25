@@ -94,6 +94,42 @@ class DashboardController extends Controller
             'total'        => $withdrawableBalance + $otherActiveBalance + $totalBlocked,
         ];
 
+        $startDate = now()->subHours(24);
+
+        // Query base para as transações da conta selecionada nas últimas 24h
+        $baseKpiQuery = $selectedAccount->payments()->where('created_at', '>=', $startDate);
+
+        // KPIs for PAY IN
+        $kpiInQuery = $baseKpiQuery->clone()->where('type_transaction', 'IN');
+        $kpiInPaidQuery = $kpiInQuery->clone()->where('status', 'paid');
+
+        $kpiIn = [
+            'total_transactions' => $kpiInQuery->count(),
+            'paid_transactions' => $kpiInPaidQuery->clone()->count(),
+            'paid_volume' => $kpiInPaidQuery->clone()->sum('amount'),
+            'total_fees' => $kpiInPaidQuery->clone()->sum('fee'),
+        ];
+
+        // KPIs for PAY OUT
+        $kpiOutQuery = $baseKpiQuery->clone()->where('type_transaction', 'OUT');
+        $kpiOutPaidQuery = $kpiOutQuery->clone()->where('status', 'paid');
+
+        $kpiOut = [
+            'total_transactions' => $kpiOutQuery->count(),
+            'paid_transactions' => $kpiOutPaidQuery->clone()->count(),
+            'paid_volume' => $kpiOutPaidQuery->clone()->sum('amount'),
+            'total_fees' => $kpiOutPaidQuery->clone()->sum('fee'),
+        ];
+
+        // KPIs for PROFIT SUMMARY (only for Admins)
+        $profitSummary = null;
+        if ($loggedInUser->isAdmin()) {
+            $profitSummary = [
+                'total_fees' => $kpiIn['total_fees'] + $kpiOut['total_fees'],
+                'net_profit' => $baseKpiQuery->clone()->where('status', 'paid')->sum('platform_profit'),
+            ];
+        }
+
 
 
 
@@ -126,6 +162,9 @@ class DashboardController extends Controller
             'balanceData'         => $balanceData,
             'recentTransactions'  => $recentTransactions,
             'pixKeys'             => $pixKeys,
+            'kpiIn'               => $kpiIn,           // <-- NOVO
+            'kpiOut'              => $kpiOut,          // <-- NOVO
+            'profitSummary'       => $profitSummary,
         ]);
     }
 
