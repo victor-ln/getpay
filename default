@@ -46,13 +46,14 @@ return 404;
 }
 
 # Deny access to sensitive directories
-location ~ /(vendor|storage|bootstrap/cache) {
-deny all;
-return 404;
-}
+# location ~ /(vendor|storage|bootstrap/cache) {
+# deny all;
+# return 404;
+# }
 
 # Static file optimization
 location ~* \.(css|js|gif|ico|jpeg|jpg|png|svg|woff|woff2|ttf|eot)$ {
+try_files $uri =404; 
 expires 1y;
 add_header Cache-Control "public, immutable";
 log_not_found off;
