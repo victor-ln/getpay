@@ -20,6 +20,7 @@ use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\DashboardController as ApiDashboardController;
+use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\FeeProfileController;
 use App\Http\Controllers\PartnerController;
 use App\Http\Controllers\PartnerPayoutMethodController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\RefundController;
 use App\Http\Controllers\WithdrawController;
 use App\Models\Account;
 use App\Models\AccountPixKey;
+use App\Models\Balance;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,6 +95,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/payments/{payment}/download', [PaymentController::class, 'downloadReceipt'])->name('payments.receipt.download');
 
 
+
+
+
+
+
     // Rota para associar um sócio a uma conta
     Route::post('/accounts/{account}/partners', [AccountController::class, 'attachPartner'])->name('accounts.partners.attach');
 
@@ -145,6 +152,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions', [PaymentController::class, 'index'])->name('transactions.index');
 
     Route::resource('/partners', PartnerPayoutController::class)->middleware('check.level:admin,manager');
+
+    Route::resource('/balance', BalanceController::class)->middleware('check.level:admin,manager');
 
 
     Route::post('/accounts/{account}/webhooks', [WebhookController::class, 'store'])->name('accounts.webhooks.store');
