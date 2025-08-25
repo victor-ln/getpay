@@ -21,11 +21,14 @@ class BalanceController extends Controller
             abort(403, 'Unauthorized Access');
         }
 
-        // Busca os saldos com a condição solicitada
-        $balances = Balance::where('available_balance', '>', 0)
-            ->orWhere('blocked_balance', '>', 0)
-            ->orderBy('updated_at', 'desc')
-            ->paginate(20); // Usando paginação por boa prática
+
+        // $balances = Balance::where('available_balance', '>', 0)
+        //     ->orWhere('blocked_balance', '>', 0)
+        //     ->orderBy('updated_at', 'desc')
+        //     ->paginate(20);
+
+        $balances = Balance::orderBy('updated_at', 'desc')
+            ->paginate(20);
 
         return view('balances.index', compact('balances'));
     }
