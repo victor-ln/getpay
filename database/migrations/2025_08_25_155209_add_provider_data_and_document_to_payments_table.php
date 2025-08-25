@@ -12,8 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            // Adiciona a coluna para armazenar a resposta completa do provedor
-            $table->json('provider_response_data')->nullable()->after('status');
 
             // Adiciona a coluna para o nome do pagador
             $table->string('name')->nullable()->after('provider_response_data');
