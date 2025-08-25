@@ -13,8 +13,6 @@ return new class extends Migration
     {
         Schema::create('balances', function (Blueprint $table) {
             $table->id();
-            // Link com a tabela de usuários. Ao deletar um usuário, o saldo dele também é deletado.
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
 
             // Usamos 'decimal' para valores monetários para evitar problemas de precisão.
             // 15 dígitos no total, 2 após a vírgula.

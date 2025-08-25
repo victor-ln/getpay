@@ -133,7 +133,6 @@ class AccountController extends Controller
 
 
             $balance = Balance::create([
-                'user_id' => 1,
                 'account_id' => $account->id,
                 'acquirer_id' => $account->acquirer_id ?? null,
                 'available_balance' => 0,  // ← Correção
