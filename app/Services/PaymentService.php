@@ -311,6 +311,7 @@ class PaymentService
             'fee' => 0,
             'type_transaction' => 'IN',
             'status' => 'pending',
+            'document' => $data['document'],
             'provider_id' => $activeBank->id,
             'provider_transaction_id' => $response['data']['uuid'] ?? null
         ]);

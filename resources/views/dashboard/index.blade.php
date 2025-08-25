@@ -381,12 +381,15 @@
                     <tr>
                         <th>GPID</th>
                         <th>Provider ID</th>
+                        <th>Transaction ID</th>
                         <th>External ID</th>
                         <th>Client</th>
                         <th>Type</th>
                         <th>Amount</th>
                         <th>Fee</th>
                         <th>Status</th>
+                        <th>Name</th>
+                        <th>Document</th>
                         <th>Created At</th>
                         <th>Updated At</th>
                         @if (Auth::check() && Auth::user()->level == 'admin')
@@ -399,6 +402,7 @@
                     <tr>
                         <td><strong>{{ $transaction->id }}</strong></td>
                         <td>{{ $transaction->provider_id ?? 'N/A' }}</td>
+                        <td>{{ $transaction->provider_transaction_id ?? 'N/A' }}</td>
                         <td>{{ $transaction->external_payment_id ?? 'N/A' }}</td>
                         <td>
                             @if ($transaction->user)
@@ -442,6 +446,8 @@
                                 {{ $config['text'] }}
                             </span>
                         </td>
+                        <td>{{ $transaction->name ?? 'N/A' }}</td>
+                        <td>{{ $transaction->document ?? 'N/A' }}</td>
                         <td>{{ $transaction->created_at->format('d/m/Y H:i:s') }}</td>
                         <td>{{ $transaction->updated_at->format('d/m/Y H:i:s') }}</td>
                         @if (Auth::check() && Auth::user()->level == 'admin')
