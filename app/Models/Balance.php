@@ -14,6 +14,7 @@ class Balance extends Model
     protected $fillable = [
         'user_id',
         'account_id',
+        'acquirer_id',
         'available_balance',
         'blocked_balance',
     ];

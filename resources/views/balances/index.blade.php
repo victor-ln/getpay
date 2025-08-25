@@ -1,6 +1,6 @@
 @extends('layouts/contentNavbarLayout')
 
-@section('title', 'Banks settings - Banks')
+@section('title', 'Balances')
 
 @section('page-script')
 {{-- Certifique-se de que delete-item.js está sendo carregado corretamente --}}

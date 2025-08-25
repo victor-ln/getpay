@@ -186,7 +186,83 @@
 
     <!-- Card único com métricas de transações confirmadas -->
 
+    <div class="row g-4 mt-2">
+        {{-- KPI Card 1: PAY IN --}}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="card-title m-0">KPIs - Pay In</h5>
+                    <span class="badge bg-success">IN</span>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Total Transactions:</span>
+                            <span class="fw-bold">150</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Total Paid:</span>
+                            <span class="fw-bold text-success">120 (80%)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Volume Paid:</span>
+                            <span class="fw-bold">R$ 25,450.70</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Total Fees (Paid):</span>
+                            <span class="fw-bold">R$ 1,234.56</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
+        {{-- KPI Card 2: PAY OUT --}}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="card-title m-0">KPIs - Pay Out</h5>
+                    <span class="badge bg-danger">OUT</span>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Total Transactions:</span>
+                            <span class="fw-bold">85</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Total Paid:</span>
+                            <span class="fw-bold text-success">80 (94%)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Volume Paid:</span>
+                            <span class="fw-bold">R$ 18,210.30</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Total Fees (Paid):</span>
+                            <span class="fw-bold">R$ 456.78</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {{-- KPI Card 3: PROFIT SUMMARY --}}
+        <div class="col-lg-4 col-md-12">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title m-0">Profit Summary</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Total Fees (IN + OUT)</h6>
+                    <p class="h4">R$ 1,691.34</p>
+                    <hr>
+                    <h6 class="text-muted">Profit for Division (Fee - Cost)</h6>
+                    <p class="h4 text-primary fw-bold">R$ 1,580.20</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 
