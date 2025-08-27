@@ -181,7 +181,7 @@ class AccountController extends Controller
         $user = Auth::user();
 
         // Verificar se é admin OU se a conta pertence ao usuário
-        if (!$user->isAdmin() && !$user->accounts()->where('id', $account->id)->exists()) {
+        if (!$user->isAdmin() && !$user->accounts()->whereKey($account->id)->exists()) {
             abort(403, 'You do not have permission to access this account.');
         }
 
