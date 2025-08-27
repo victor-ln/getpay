@@ -70,6 +70,11 @@ class AccountController extends Controller
      */
     public function create()
     {
+        if (!Auth::user()->isAdmin()) {
+            abort(403, 'Unauthorized Access');
+        }
+
+
         // Busca todos os usuários que são sócios para popular o <select> no formulário
         $availablePartners = User::where('level', User::LEVEL_PARTNER)->orderBy('name')->get();
         $banks = Bank::where('active', 1)->get();
@@ -173,6 +178,13 @@ class AccountController extends Controller
      */
     public function edit(Account $account)
     {
+        $user = Auth::user();
+
+        // Verificar se é admin OU se a conta pertence ao usuário
+        if (!$user->isAdmin() && !$user->accounts()->where('id', $account->id)->exists()) {
+            abort(403, 'You do not have permission to access this account.');
+        }
+
 
 
         $account->load('users', 'webhooks', 'pixKeys', 'fees', 'profitSharingPartners', 'feeProfiles');
