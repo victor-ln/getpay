@@ -279,6 +279,7 @@ class WebhookController extends Controller
                     $payment->document = $transactionVerified['data']['metadata']['receiverDocument'] ?? '---';
                     $balance->blocked_balance -= $totalBlockedAmount; // Apenas remove do bloqueado
 
+
                     Log::info("Pay-out confirmado como 'FINISHED'. Saldo bloqueado liberado.", [
                         'payment_id' => $payment->id,
                         'amount_released_from_blocked' => $totalBlockedAmount
@@ -308,6 +309,7 @@ class WebhookController extends Controller
             $payment->cost = $cost;
             $payment->end_to_end_id = $transactionVerified['data']['endToEndId'] ?? '---';
             $payment->provider_response_data = $transactionVerified;
+            $payment->platform_profit = (float) ($fee - $cost);
 
             $payment->save();
             $balance->save();
