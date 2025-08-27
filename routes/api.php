@@ -39,6 +39,7 @@ Route::middleware(['auth:api', 'throttle:financials'])->group(function () {
     Route::post('/balance', [BalanceController::class, 'show']);
     Route::post('/transaction/status', [ApiPaymentController::class, 'getStatus']);
     Route::post('/transactions', [ApiPaymentController::class, 'filter']);
+    Route::post('/transactions/totals', [ApiPaymentController::class, 'calculateTotals']);
 });
 
 

@@ -53,6 +53,59 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * Retorna o valor total (amount) e a taxa (fee) total das transações
+     * dentro de um período, filtrado por tipo de transação.
+     *
+     * Se nenhum tipo de transação for fornecido, o padrão será "IN".
+     */
+    public function calculateTotals(Request $request)
+    {
+        // 1. Validação dos dados de entrada
+        $validated = $request->validate([
+            'date' => 'nullable|date',
+            'startDate' => 'nullable|date',
+            'endDate' => 'nullable|date|after_or_equal:startDate',
+            'type_transaction' => 'nullable|string|in:IN,OUT',
+        ]);
+
+        $user = Auth::user();
+        $accountId = $user->accounts()->first()->id;
+
+        if (!$accountId) {
+            return response()->json(['message' => 'Account not found.'], 404);
+        }
+
+        // 3. Constrói a query base
+        $query = Payment::where('account_id', $accountId);
+
+        // 4. Aplica os filtros de data
+        if (isset($validated['date'])) {
+            $date = Carbon::parse($validated['date']);
+            $query->whereDate('created_at', $date); // Ignora a parte da hora
+        } elseif (isset($validated['startDate'])) {
+            $startDate = Carbon::parse($validated['startDate'])->startOfDay();
+            $endDate = isset($validated['endDate'])
+                ? Carbon::parse($validated['endDate'])->endOfDay()
+                : $startDate->copy()->endOfDay(); // Se só tem startDate, vai até o final do dia
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        // 5. Filtra por tipo de transação (padrão: "IN")
+        $typeTransaction = $validated['type_transaction'] ?? 'IN';
+        $query->where('type_transaction', $typeTransaction);
+        // 6. Calcula os totais
+        $totals = $query->selectRaw('SUM(amount) as total_amount, SUM(fee) as total_fee')->first();
+
+        // 7. Retorna os resultados
+        return response()->json([
+            'total_amount' => (float) ($totals->total_amount ?? 0), // Garante que retorna 0 se for null
+            'total_fee' => (float) ($totals->total_fee ?? 0),
+            'currency' => 'BRL', //TODO pegar a moeda da conta
+        ]);
+    }
+
+
 
     public function filter(Request $request)
     {
