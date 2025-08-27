@@ -110,6 +110,7 @@ class WithdrawService
 
 
 
+
         // 3. Verifica se o saldo disponível cobre o débito total.
         if ($account->total_available_balance < $totalDebitAmount) {
             $this->logAction($user, self::ACTION_WITHDRAW_INSUFFICIENT_FUNDS, ['requested_total' => $totalDebitAmount, 'available' => $account->total_available_balance]);

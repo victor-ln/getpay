@@ -144,7 +144,7 @@ $(document).ready(function () {
         const $selectedOption = $("#pix-key-select").find("option:selected");
         const selectedKey = $selectedOption.val();
         const availableBalance = parseFloat(
-            $("#available-balance-value").data("balance") || 0,
+            $("#withdrawable-balance-value").data("balance") || 0,
         );
 
         // Validações

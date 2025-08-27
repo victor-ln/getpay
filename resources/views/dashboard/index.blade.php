@@ -58,7 +58,7 @@
                 </div>
                 <div class="card-body">
                     <small>Available for Withdrawal (from default acquirer)</small>
-                    <h2 class="display-6 fw-bold my-1">
+                    <h2 id="withdrawable-balance-value" data-balance="{{ $balanceData['withdrawable'] ?? 0 }}" class="display-6 fw-bold my-1">
                         R$ {{ number_format($balanceData['withdrawable'] ?? 0, 2, ',', '.') }}
                     </h2>
 
