@@ -466,7 +466,7 @@
                             <div class="mb-3 col-md-12">
                                 <label for="base-url" class="form-label">Base URL</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="base-url" value="https://hub.getpay.store/api" readonly>
+                                    <input type="text" class="form-control" id="base-url" value="https://hub.getpay.one/api" readonly>
                                     <span class="input-group-text" style="cursor: pointer;" onclick="copiarTexto('base-url')">
                                         <i class="bx bx-copy"></i>
                                     </span>
