@@ -83,7 +83,7 @@ class DubaiWebhookController extends Controller
             $balance = Balance::firstOrCreate(
                 [
                     'account_id'  => $payment->account_id,
-                    'acquirer_id' => $payment->account->acquirer_id,
+                    'acquirer_id' => $payment->provider_id,
                 ],
                 [
                     'available_balance' => 0,
@@ -225,7 +225,7 @@ class DubaiWebhookController extends Controller
             $payment->end_to_end_id = $payload['bankData']['endToEndId'] ?? '---';
             $payment->provider_response_data = $payload;
             $payment->name = $payload['bankData']['name'] ?? '---';
-            $payment->document = $payload['documentNumber']['payerDocument'] ?? '---';
+            $payment->document = $payload['bankData']['payerDocument'] ?? '---';
             $payment->platform_profit = (float) ($fee - $cost);
             $payment->save();
 

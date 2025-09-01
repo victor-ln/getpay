@@ -191,7 +191,7 @@
         <div class="col-lg-4 col-md-6">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between">
-                    <h5 class="card-title m-0">Pay In (Last 24h)</h5>
+                    <h5 class="card-title m-0">Pay In (Today)</h5>
                     <span class="badge bg-success">IN</span>
                 </div>
                 <div class="card-body">
@@ -228,7 +228,7 @@
         <div class="col-lg-4 col-md-6">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between">
-                    <h5 class="card-title m-0"> Pay Out (Last 24h)</h5>
+                    <h5 class="card-title m-0"> Pay Out (Today)</h5>
                     <span class="badge bg-danger">OUT</span>
                 </div>
                 <div class="card-body">
@@ -266,7 +266,7 @@
         <div class="col-lg-4 col-md-12">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="card-title m-0">Profit Summary (Last 24h)</h5>
+                    <h5 class="card-title m-0">Profit Summary (Today)</h5>
                 </div>
                 <div class="card-body text-center">
                     <h6 class="text-muted">Total Fees (IN + OUT)</h6>

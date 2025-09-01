@@ -94,7 +94,7 @@ class DashboardController extends Controller
             'total'        => $withdrawableBalance + $otherActiveBalance + $totalBlocked,
         ];
 
-        $startDate = now()->subHours(24);
+        $startDate = now()->startOfDay();
 
         // Query base para as transações da conta selecionada nas últimas 24h
         $baseKpiQuery = $selectedAccount->payments()->where('created_at', '>=', $startDate);
@@ -146,7 +146,34 @@ class DashboardController extends Controller
         if ($request->filled('type_transaction')) {
             $transactionsQuery->where('type_transaction', $request->type_transaction);
         }
-        // ... (todos os outros seus filtros: date_filter, amount_min, amount_max, search)
+
+        if ($request->filled('date_filter')) {
+            $days = $request->date_filter;
+            if ($days != 'all') {
+                $transactionsQuery->where('created_at', '>=', now()->subDays($days));
+            }
+        }
+
+        // Filtro por valor mínimo
+        if ($request->filled('amount_min')) {
+            $transactionsQuery->where('amount', '>=', $request->amount_min);
+        }
+
+        if ($request->filled('amount_max')) {
+            $transactionsQuery->where('amount', '<=', $request->amount_max);
+        }
+
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+
+            $transactionsQuery->where(function ($q) use ($searchTerm) {
+                $q->where('id', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('external_payment_id', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('provider_transaction_id', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('name', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('document', 'LIKE', "%{$searchTerm}%");
+            });
+        }
 
         $recentTransactions = $transactionsQuery->paginate(10)->withQueryString(); // withQueryString() mantém os filtros na paginação
 

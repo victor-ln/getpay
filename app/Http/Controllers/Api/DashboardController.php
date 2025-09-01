@@ -11,58 +11,56 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DashboardController extends Controller
 {
-    /**
-     * Retorna os dados para o dashboard principal, adaptando-se ao nível de acesso do usuário.
-     */
+
     public function getDashboardData(Request $request)
     {
         $loggedInUser = Auth::user();
-        $accountsForSelector = collect(); // A lista de contas para o dropdown do admin/sócio
+        $accountsForSelector = collect();
         $selectedAccount = null;
 
-        // 1. DETERMINAR QUAIS CONTAS O USUÁRIO PODE VISUALIZAR
+
         if ($loggedInUser->level === 'admin') {
             $accountsForSelector = Account::orderBy('name')->get(['id', 'name']);
         } elseif ($loggedInUser->level === 'partner') {
             $accountsForSelector = Account::where('partner_id', $loggedInUser->id)->orderBy('name')->get(['id', 'name']);
-        } else { // É um Cliente
+        } else {
             $selectedAccount = $loggedInUser->accounts()->first();
         }
 
-        // 2. DETERMINAR A CONTA ATUALMENTE SELECIONADA
+
         if ($accountsForSelector->isNotEmpty()) {
             $requestedAccountId = $request->input('account_id');
 
             if ($requestedAccountId) {
-                // Garante que o admin/sócio só possa ver uma conta que lhe pertence
+
                 $selectedAccount = $accountsForSelector->firstWhere('id', $requestedAccountId);
             } else {
-                // Se nenhuma conta foi selecionada, pega a primeira da lista como padrão
+
                 $selectedAccount = $accountsForSelector->first();
             }
         }
 
-        // 3. BUSCAR OS DADOS DETALHADOS APENAS DA CONTA SELECIONADA
+
         $balance = null;
         $pixKeys = collect();
         $payments = null;
         $minTransactionValue = 1.00;
 
         if ($selectedAccount) {
-            // Carrega os relacionamentos de uma vez para otimizar
+
             $selectedAccount->load('balance', 'pixKeys');
 
             $balance = $selectedAccount->balance;
             $pixKeys = $selectedAccount->pixKeys->map->only(['type', 'key']);
             $minTransactionValue = $selectedAccount->min_amount_transaction;
 
-            // Inicia a query de pagamentos PARA ESTA CONTA
+
             $query = Payment::where('account_id', $selectedAccount->id);
 
-            // Aplica os filtros da request à query
+
             $this->applyFilters($query, $request);
 
-            // Lógica de paginação
+
             $limit = $request->input('limit');
             if ($limit === 'all') {
                 $payments = $query->latest()->get();
@@ -72,7 +70,7 @@ class DashboardController extends Controller
         }
 
 
-        // 4. MONTAR A RESPOSTA JSON FINAL
+
         $data = [
             'loggedInUser' => [
                 'id' => $loggedInUser->id,
