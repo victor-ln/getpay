@@ -33,8 +33,8 @@ class TakeController extends Controller
             ->whereNull('payments.take_id') // Apenas pagamentos não processados
             ->select(
                 'accounts.name as account_name',
-                DB::raw("SUM(CASE WHEN payments.type = 'IN' THEN payments.amount ELSE 0 END) as total_in"),
-                DB::raw("SUM(CASE WHEN payments.type = 'OUT' THEN payments.amount ELSE 0 END) as total_out"),
+                DB::raw("SUM(CASE WHEN payments.type_transaction = 'IN' THEN payments.amount ELSE 0 END) as total_in"),
+                DB::raw("SUM(CASE WHEN payments.type_transaction = 'OUT' THEN payments.amount ELSE 0 END) as total_out"),
                 DB::raw("SUM(COALESCE(payments.fee, 0) - COALESCE(payments.cost, 0)) as total_profit")
             )
             ->groupBy('accounts.name')
