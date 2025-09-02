@@ -10,6 +10,8 @@ use App\Models\PlatformTake; // O model da tabela platform_takes
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;  
+
 
 class TakeController extends Controller
 {
@@ -19,34 +21,40 @@ class TakeController extends Controller
      */
     public function create()
     {
-        
-        $lastTakeDate = PlatformTake::where('payout_status', 'completed')
-                                    ->latest('end_date')
-                                    ->first()?->end_date ?? '1970-01-01'; // Data inicial se nunca houve um take
+        // --- 1. Definição das Datas (conforme seu pedido) ---
+        $startDate = Carbon::yesterday()->setTime(17, 0, 0);
+        $endDate = Carbon::today()->setTime(17, 0, 0);
 
-        
-        $pendingPayments = Payment::whereNull('take_id')
-                                  ->where('status', 'paid')
-                                  ->where('created_at', '>', $lastTakeDate)
-                                  ->get();
+        // --- 2. Busca e processa os dados de pagamentos ---
+        $paymentsData = DB::table('payments')
+            ->join('accounts', 'payments.account_id', '=', 'accounts.id')
+            ->whereBetween('payments.created_at', [$startDate, $endDate])
+            ->where('payments.status', 'paid')
+            ->whereNull('payments.take_id') // Apenas pagamentos não processados
+            ->select(
+                'accounts.name as account_name',
+                DB::raw("SUM(CASE WHEN payments.type = 'IN' THEN payments.amount ELSE 0 END) as total_in"),
+                DB::raw("SUM(CASE WHEN payments.type = 'OUT' THEN payments.amount ELSE 0 END) as total_out"),
+                DB::raw("SUM(COALESCE(payments.fee, 0) - COALESCE(payments.cost, 0)) as total_profit")
+            )
+            ->groupBy('accounts.name')
+            ->get();
 
-        
-        $totalProfit = $pendingPayments->sum(function ($payment) {
-            return ($payment->fee ?? 0) - ($payment->cost ?? 0);
-        });
+        // --- 3. Calcula o lucro total ---
+        $totalProfit = $paymentsData->sum('total_profit');
 
-        
-        $sourceBanks = Bank::where('is_active', true)->get();
-        $destinations = PayoutDestination::where('is_active', true)->get();
+        // --- 4. Busca as contas de origem (seus bancos) e os destinos ---
+        $sourceBanks = \App\Models\Bank::where('is_active', true)->get();
+        $destinations = \App\Models\PayoutDestination::where('is_active', true)->get();
 
-        
+        // --- 5. Retorna a view com todos os dados ---
         return view('admin.takes.create', [
             'totalProfit' => $totalProfit,
-            'startDate' => $lastTakeDate,
-            'endDate' => now(),
+            'startDate' => $startDate,
+            'endDate' => $endDate,
             'sourceBanks' => $sourceBanks,
             'destinations' => $destinations,
-            'reportData' => [],
+            'reportData' => $paymentsData,
         ]);
     }
 

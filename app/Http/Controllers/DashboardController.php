@@ -97,7 +97,7 @@ class DashboardController extends Controller
         $startDate = now()->startOfDay();
 
         // Query base para as transações da conta selecionada nas últimas 24h
-        $baseKpiQuery = $selectedAccount->payments()->where('updated_at', '>=', $startDate);
+        $baseKpiQuery = $selectedAccount->payments()->where('created_at', '>=', $startDate);
 
         // KPIs for PAY IN
         $kpiInQuery = $baseKpiQuery->clone()->where('type_transaction', 'IN');
