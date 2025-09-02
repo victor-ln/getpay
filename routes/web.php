@@ -30,6 +30,8 @@ use App\Http\Controllers\WithdrawController;
 use App\Models\Account;
 use App\Models\AccountPixKey;
 use App\Models\Balance;
+use App\Http\Controllers\Admin\TakeController;
+use App\Http\Controllers\Admin\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -98,7 +100,12 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+    
 
+
+    Route::get('admin/test-report', [ReportController::class, 'summary'])->name('admin.reports.summary');
+    Route::get('admin/takes/create', [TakeController::class, 'create'])->name('admin.takes.create');
+    Route::post('admin/takes', [TakeController::class, 'store'])->name('admin.takes.store');
     Route::resource('admin/payout-destinations', PayoutDestinationController::class)->names('admin.payout-destinations');
 
     // Rota para associar um sócio a uma conta

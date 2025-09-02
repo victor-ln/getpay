@@ -12,7 +12,7 @@
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>PIX Key Destinations</h1>
+        <h5>PIX Key Destinations</h5>
         <a href="{{ route('admin.payout-destinations.create') }}" class="btn btn-primary">Add New Key</a>
     </div>
 

@@ -7,7 +7,7 @@
 @vite(['resources/assets/js/pages-account-settings-account.js', 'resources/assets/js/delete-item.js'])
 @endsection
 @section('content')
-    <h1>Add New PIX Key</h1>
+    <h5>Add New PIX Key</h5>
 
     <form action="{{ route('admin.payout-destinations.store') }}" method="POST">
         @csrf
