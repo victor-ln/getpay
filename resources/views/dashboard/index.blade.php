@@ -294,7 +294,7 @@
         </div>
 
 {{-- Novo container para o painel de filtros com fundo e bordas --}}
-<div class="filter-toolbar card-body bg-light border-top border-bottom mb-3 py-3">
+<div class="filter-toolbar card-body  border-top border-bottom mb-3 py-3">
     <form method="GET" action="{{ route('dashboard') }}">
         <div class="row g-3">
             {{-- Linha 1: Filtros Principais --}}
