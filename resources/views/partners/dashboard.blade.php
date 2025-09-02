@@ -58,29 +58,66 @@
     {{-- == SEÇÃO 2: MÉTRICAS GLOBAIS DO NEGÓCIO == --}}
     {{-- ======================================================= --}}
     <h6 class="py-3 mb-4">
-        <span class="text-muted fw-light">Dashboard /</span> Global Metrics
+    <span class="text-muted fw-light">Dashboard /</span> Platform Financials
     </h6>
-    <div class="row mb-5">
-        <div class="col-md-6">
-            <div class="card">
+
+    <div class="row">
+        <div class="col-lg-7 mb-4">
+            <div class="card h-100">
+                <div class="card-header pb-0">
+                    <h5 class="card-title mb-0">Profit Available for Next Take</h5>
+                    <small class="text-muted">Net profit generated since the last settlement.</small>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">Total Balance in Custody</h5>
-                    <p class="h2 text-primary fw-bold">R$ {{ number_format($totalBalanceInCustody ?? 0, 2, ',', '.') }}</p>
-                    <small class="text-muted">Sum of all client account balances.</small>
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar me-3">
+                                <span class="avatar-initial rounded-circle bg-label-success">
+                                    <i class="bx bx-dollar fs-4"></i>
+                                </span>
+                            </div>
+                            <div class="text-success">
+                                {{-- NÚMERO FALSO PARA O NOVO LUCRO --}}
+                                <p class="h2 fw-bold mb-0">R$ 4.571,12</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted d-block mb-1">
+                                <i class="bx bx-check-circle me-1"></i>Last Take Settled
+                            </small>
+                            {{-- NÚMERO FALSO PARA O VALOR DO ÚLTIMO TAKE --}}
+                            <h6 class="mb-0">R$ 11.789,52</h6>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted d-block mb-1">
+                                <i class="bx bx-calendar me-1"></i>On Date
+                            </small>
+                            {{-- DATA FALSA PARA O ÚLTIMO TAKE --}}
+                            <h6 class="mb-0">01/09/2025 17:00</h6>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card">
+
+        <div class="col-lg-5 mb-4">
+            <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Total Net Profit (Fee - Cost)</h5>
-                    <p class="h2 text-success fw-bold">R$ {{ number_format($totalNetProfit ?? 0, 2, ',', '.') }}</p>
-                    <small class="text-muted">Total profit after costs since the start date.</small>
+                    <h5 class="card-title">Total Balance in Custody</h5>
+                    <small class="text-muted">Sum of all client account balances.</small>
+                    <div class="d-flex align-items-end mt-3">
+                        <p class="h2 text-primary fw-bold me-2 mb-0">R$ 42.406,85</p>
+                        <i class="bx bx-wallet text-primary fs-3"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
 
     {{-- ======================================================= --}}
     {{-- == SEÇÃO 3: ANÁLISE DETALHADA POR CONTA DE CLIENTE == --}}

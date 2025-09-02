@@ -5,7 +5,7 @@
 @section('title', 'Generate New Take')
 
 @section('content')
-    <h1>Generate New Take</h1>
+    <h5>Generate New Take</h5>
     <p class="text-muted">
         Processing transactions from <strong>{{ $startDate->format('d/m/Y H:i') }}</strong> to <strong>{{ $endDate->format('d/m/Y H:i') }}</strong>
     </p>
