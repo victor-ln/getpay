@@ -44,7 +44,7 @@ class TakeController extends Controller
         $totalProfit = $paymentsData->sum('total_profit');
 
         // --- 4. Busca as contas de origem (seus bancos) e os destinos ---
-        $sourceBanks = \App\Models\Bank::where('is_active', true)->get();
+        $sourceBanks = \App\Models\Bank::where('active', true)->get();
         $destinations = \App\Models\PayoutDestination::where('is_active', true)->get();
 
         // --- 5. Retorna a view com todos os dados ---
