@@ -77,8 +77,9 @@
                                 </span>
                             </div>
                             <div class="text-success">
-                                {{-- NÚMERO FALSO PARA O NOVO LUCRO --}}
-                                <p class="h2 fw-bold mb-0">R$ 4.571,12</p>
+                                <p class="h2 fw-bold mb-0">
+                                    R$ {{ number_format($totalNetProfit ?? 0, 2, ',', '.') }}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -91,7 +92,7 @@
                                 <i class="bx bx-check-circle me-1"></i>Last Take Settled
                             </small>
                             {{-- NÚMERO FALSO PARA O VALOR DO ÚLTIMO TAKE --}}
-                            <h6 class="mb-0">R$ 11.789,52</h6>
+                            <h6 class="mb-0">R$ 11.360,74</h6>
                         </div>
                         <div class="text-end">
                             <small class="text-muted d-block mb-1">
@@ -111,7 +112,7 @@
                     <h5 class="card-title">Total Balance in Custody</h5>
                     <small class="text-muted">Sum of all client account balances.</small>
                     <div class="d-flex align-items-end mt-3">
-                        <p class="h2 text-primary fw-bold me-2 mb-0">R$ 42.406,85</p>
+                        <p class="h2 text-primary fw-bold me-2 mb-0">R$ {{ number_format($totalBalanceInCustody ?? 0, 2, ',', '.') }}</p>
                         <i class="bx bx-wallet text-primary fs-3"></i>
                     </div>
                 </div>
