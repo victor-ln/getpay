@@ -320,8 +320,29 @@
                         </select>
                     </div>
 
+                    
+
+                    <!-- Filtro por Valor Mínimo -->
+                    <div class="col-md-2">
+                        <label for="amount_min" class="form-label small">Min Amount</label>
+                        <input type="number" step="0.01" class="form-control form-control-sm" name="amount_min"
+                            value="{{ request('amount_min') }}" placeholder="0.00">
+                    </div>
+                    <!-- Filtro por Valor Máximo -->
+                    <div class="col-md-2">
+                        <label for="amount_max" class="form-label small">Max Amount</label>
+                        <input type="number" step="0.01" class="form-control form-control-sm" name="amount_max"
+                            value="{{ request('amount_max') }}" placeholder="0.00">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="search" class="form-label small">Search</label>
+                        <input type="text" class="form-control form-control-sm" name="search"
+                            value="{{ request('search') }}"
+                            placeholder="ID, External ID, Provider ID, Name or Document">
+                    </div>
                     <!-- Filtro por Período -->
-                    <<div class="col-md-2">
+                    <div class="col-md-2">
                         <label for="date_filter" class="form-label small">Period</label>
                         <select class="form-select form-select-sm" name="date_filter" id="date_filter_select">
                             <option value="all" {{ request('date_filter', 'all') == 'all' ? 'selected' : '' }}>All Time</option>
@@ -343,26 +364,6 @@
                                 <input type="date" class="form-control form-control-sm" name="end_date" value="{{ request('end_date') }}">
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Filtro por Valor Mínimo -->
-                    <div class="col-md-2">
-                        <label for="amount_min" class="form-label small">Min Amount</label>
-                        <input type="number" step="0.01" class="form-control form-control-sm" name="amount_min"
-                            value="{{ request('amount_min') }}" placeholder="0.00">
-                    </div>
-                    <!-- Filtro por Valor Máximo -->
-                    <div class="col-md-2">
-                        <label for="amount_max" class="form-label small">Max Amount</label>
-                        <input type="number" step="0.01" class="form-control form-control-sm" name="amount_max"
-                            value="{{ request('amount_max') }}" placeholder="0.00">
-                    </div>
-
-                    <div class="col-md-2">
-                        <label for="search" class="form-label small">Search</label>
-                        <input type="text" class="form-control form-control-sm" name="search"
-                            value="{{ request('search') }}"
-                            placeholder="ID, External ID, Provider ID, Nome ou Documento">
                     </div>
 
                     <!-- Botões -->

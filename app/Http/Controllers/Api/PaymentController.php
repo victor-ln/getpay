@@ -78,6 +78,7 @@ class PaymentController extends Controller
 
         // 3. Constrói a query base
         $query = Payment::where('account_id', $accountId);
+        $query->where('status', 'paid'); 
 
         // 4. Aplica os filtros de data
         if (isset($validated['date'])) {
@@ -94,6 +95,7 @@ class PaymentController extends Controller
         // 5. Filtra por tipo de transação (padrão: "IN")
         $typeTransaction = $validated['type_transaction'] ?? 'IN';
         $query->where('type_transaction', $typeTransaction);
+
         // 6. Calcula os totais
         $totals = $query->selectRaw('SUM(amount) as total_amount, SUM(fee) as total_fee')->first();
 
