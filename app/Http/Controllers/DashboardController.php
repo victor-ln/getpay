@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\TransactionsExport; 
+use Maatwebsite\Excel\Facades\Excel;
 
 
 
@@ -279,5 +281,15 @@ class DashboardController extends Controller
         $metrics = $this->getConfirmedMetrics($period, $accountId);
 
         return response()->json($metrics);
+    }
+
+    public function export(Request $request)
+    {
+        // Gera um nome de arquivo dinâmico com a data e hora
+        $fileName = 'transactions-' . now()->format('Y-m-d-His') . '.xlsx';
+
+        // Chama a classe TransactionsExport, passando os filtros da request,
+        // e o método download inicia o download no navegador do usuário.
+        return Excel::download(new TransactionsExport($request), $fileName);
     }
 }

@@ -100,7 +100,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 
-    
+    Route::get('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
 
 
     Route::get('admin/test-report', [ReportController::class, 'summary'])->name('admin.reports.summary');
