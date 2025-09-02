@@ -41,7 +41,7 @@ class PartnerController extends Controller
 
         // 2. Define a data de corte. Se nenhum pagamento for encontrado, usa uma data padrão (ex: o início do dia de hoje).
         // $startDate = $lastSettlementPayment ? $lastSettlementPayment->created_at : now()->startOfDay();
-        $startDate = '2025-09-01 17:00:00';
+        $startDate = '2025-09-02 17:00:00';
         $totalNetProfit = \App\Models\Payment::where('created_at', '>=', $startDate)
             ->whereIn('status', ['paid', 'refunded'])
             // ✅ ADICIONADO: Garante que a soma do lucro total exclua as mesmas contas da lista.

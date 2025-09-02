@@ -365,9 +365,9 @@
                             </div>
                         </div>
                     </div>
-
+  
                     <!-- Botões -->
-                    <div class="col-md-4 float-right">
+                    <div class="col-md-4 text-md-end">
                         <button type="submit" class="btn btn-primary btn-sm me-2">
                             <i class="bx bx-search me-1"></i>Filter
                         </button>
