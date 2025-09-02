@@ -293,87 +293,105 @@
             <h5 class="mb-0">Recent Transactions</h5>
         </div>
 
-        <div class="card-body border-top">
+{{-- Novo container para o painel de filtros com fundo e bordas --}}
+<div class="filter-toolbar card-body bg-light border-top border-bottom mb-3 py-3">
     <form method="GET" action="{{ route('dashboard') }}">
-        {{-- Linha 1: Filtros Principais (Busca, Status, Tipo, Período) --}}
-        <div class="row g-3 align-items-end">
-            <div class="col-md-4">
+        <div class="row g-3">
+            {{-- Linha 1: Filtros Principais --}}
+            <div class="col-md-5">
                 <label for="search" class="form-label small">Search</label>
-                <input type="text" class="form-control form-control-sm" name="search"
-                    value="{{ request('search') }}"
-                    placeholder="ID, External ID, Provider ID, Name or Document">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bx bx-search"></i></span>
+                    <input type="text" class="form-control" name="search" value="{{ request('search') }}"
+                           placeholder="ID, External ID, Provider ID...">
+                </div>
             </div>
+
             <div class="col-md-2">
                 <label for="status" class="form-label small">Status</label>
-                <select class="form-select form-select-sm" name="status">
-                    <option value="">All Status</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Paid</option>
-                    {{-- Adicione outros status aqui --}}
-                </select>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bx bx-tag-alt"></i></span>
+                    <select class="form-select" name="status">
+                        <option value="">All Status</option>
+                        <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Paid</option>
+                        {{-- Outros status --}}
+                    </select>
+                </div>
             </div>
+
             <div class="col-md-2">
                 <label for="type_transaction" class="form-label small">Type</label>
-                <select class="form-select form-select-sm" name="type_transaction">
-                    <option value="">All Types</option>
-                    <option value="IN" {{ request('type_transaction') == 'IN' ? 'selected' : '' }}>Pay In</option>
-                    <option value="OUT" {{ request('type_transaction') == 'OUT' ? 'selected' : '' }}>Pay Out</option>
-                </select>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bx bx-transfer-alt"></i></span>
+                    <select class="form-select" name="type_transaction">
+                        <option value="">All Types</option>
+                        <option value="IN" {{ request('type_transaction') == 'IN' ? 'selected' : '' }}>Pay In</option>
+                        <option value="OUT" {{ request('type_transaction') == 'OUT' ? 'selected' : '' }}>Pay Out</option>
+                    </select>
+                </div>
             </div>
-            <div class="col-md-4">
-                {{-- Agrupando o Período e as Datas Customizadas --}}
-                <div class="row g-3">
-                    <div class="col-sm-6">
-                        <label for="date_filter_select" class="form-label small">Period</label>
-                        <select class="form-select form-select-sm" name="date_filter" id="date_filter_select">
-                            <option value="all" {{ request('date_filter', 'all') == 'all' ? 'selected' : '' }}>All Time</option>
-                            <option value="1" {{ request('date_filter') == '1' ? 'selected' : '' }}>Last 24h</option>
-                            <option value="7" {{ request('date_filter') == '7' ? 'selected' : '' }}>Last 7 days</option>
-                            <option value="custom" {{ request('date_filter') == 'custom' ? 'selected' : '' }}>Custom Range</option>
-                            {{-- Adicione outros períodos aqui --}}
-                        </select>
-                    </div>
-                    <div class="col-sm-6">
-                        {{-- Container das datas customizadas --}}
-                        <div id="custom_date_range_fields" style="display: none;">
-                            <label class="form-label small">Custom Dates</label>
-                            <div class="input-group input-group-sm">
-                                <input type="date" class="form-control" name="start_date" value="{{ request('start_date') }}">
-                                <input type="date" class="form-control" name="end_date" value="{{ request('end_date') }}">
-                            </div>
-                        </div>
+
+            <div class="col-md-3">
+                <label for="date_filter_select" class="form-label small">Period</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bx bx-calendar"></i></span>
+                    <select class="form-select" name="date_filter" id="date_filter_select">
+                        <option value="all" {{ request('date_filter', 'all') == 'all' ? 'selected' : '' }}>All Time</option>
+                        <option value="7" {{ request('date_filter') == '7' ? 'selected' : '' }}>Last 7 days</option>
+                        <option value="custom" {{ request('date_filter') == 'custom' ? 'selected' : '' }}>Custom Range</option>
+                        {{-- Outros períodos --}}
+                    </select>
+                </div>
+            </div>
+
+            {{-- Linha 2: Filtros Secundários e Ações --}}
+            <div class="col-md-2">
+                <label for="amount_min" class="form-label small">Min Amount</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">R$</span>
+                    <input type="number" step="0.01" class="form-control" name="amount_min"
+                           value="{{ request('amount_min') }}" placeholder="0.00">
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <label for="amount_max" class="form-label small">Max Amount</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">R$</span>
+                    <input type="number" step="0.01" class="form-control" name="amount_max"
+                           value="{{ request('amount_max') }}" placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                {{-- Container das datas customizadas (agora com ícone) --}}
+                <div id="custom_date_range_fields" style="display: none;">
+                    <label class="form-label small">Custom Dates</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bx bx-calendar-event"></i></span>
+                        <input type="date" class="form-control" name="start_date" value="{{ request('start_date') }}">
+                        <input type="date" class="form-control" name="end_date" value="{{ request('end_date') }}">
                     </div>
                 </div>
             </div>
-        </div>
 
-        {{-- Linha 2: Filtros Secundários (Valores) e Botões de Ação --}}
-        <div class="row g-3 align-items-end mt-2">
-            <div class="col-md-2">
-                <label for="amount_min" class="form-label small">Min Amount</label>
-                <input type="number" step="0.01" class="form-control form-control-sm" name="amount_min"
-                    value="{{ request('amount_min') }}" placeholder="0.00">
-            </div>
-            <div class="col-md-2">
-                <label for="amount_max" class="form-label small">Max Amount</label>
-                <input type="number" step="0.01" class="form-control form-control-sm" name="amount_max"
-                    value="{{ request('amount_max') }}" placeholder="0.00">
-            </div>
-
-            {{-- Coluna vazia para empurrar os botões para a direita --}}
-            <div class="col-md-4"></div> 
-
-            {{-- Botões de Ação --}}
-            <div class="col-md-4 text-md-end">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bx bx-search me-1"></i>Filter
-                </button>
-                <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="bx bx-x me-1"></i>Clear
-                </a>
-                <a href="{{ route('dashboard.export', request()->query()) }}" class="btn btn-success btn-sm">
-                    <i class="bx bx-spreadsheet me-1"></i>Export XLS
-                </a>
+            {{-- Botões de Ação agrupados --}}
+            <div class="col-md-5 d-flex justify-content-end align-items-end">
+                <div class="btn-toolbar">
+                    <div class="btn-group me-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bx bx-filter-alt me-1"></i>Filter
+                        </button>
+                        <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bx bx-eraser me-1"></i>Clear
+                        </a>
+                    </div>
+                    <div class="btn-group">
+                         <a href="{{ route('dashboard.export', request()->query()) }}" class="btn btn-success btn-sm">
+                            <i class="bx bx-spreadsheet me-1"></i>Export XLS
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
