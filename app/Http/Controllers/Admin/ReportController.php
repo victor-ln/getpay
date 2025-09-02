@@ -29,8 +29,8 @@ class ReportController extends Controller
                 ->select(
                     'payments.account_id',
                     'accounts.name as account_name', // Pega o nome da conta
-                    DB::raw("SUM(CASE WHEN payments.type = 'IN' THEN payments.amount ELSE 0 END) as total_in"),
-                    DB::raw("SUM(CASE WHEN payments.type = 'OUT' THEN payments.amount ELSE 0 END) as total_out"),
+                    DB::raw("SUM(CASE WHEN payments.type_transacion = 'IN' THEN payments.amount ELSE 0 END) as total_in"),
+                    DB::raw("SUM(CASE WHEN payments.type_transacion = 'OUT' THEN payments.amount ELSE 0 END) as total_out"),
                     DB::raw("SUM(COALESCE(payments.fee, 0) - COALESCE(payments.cost, 0)) as total_profit")
                 )
                 ->groupBy('payments.account_id', 'accounts.name')
