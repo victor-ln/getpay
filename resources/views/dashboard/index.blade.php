@@ -16,8 +16,9 @@
 {{-- Seu banking.js (agora mais enxuto) será carregado aqui --}}
 @vite('resources/assets/js/banking.js')
 @vite('resources/assets/js/metrics.js')
+@vite('resources/assets/js/dateRangeFilter.js')
 @endsection
-
+ 
 @section('content')
 
 {{-- PAINEL DE SELEÇÃO DE CONTA (Funcionalidade mantida) --}}
@@ -320,15 +321,28 @@
                     </div>
 
                     <!-- Filtro por Período -->
-                    <div class="col-md-2">
+                    <<div class="col-md-2">
                         <label for="date_filter" class="form-label small">Period</label>
-                        <select class="form-select form-select-sm" name="date_filter">
-                            <option value="all" {{ request('date_filter') == 'all' ? 'selected' : '' }}>All Time</option>
+                        <select class="form-select form-select-sm" name="date_filter" id="date_filter_select">
+                            <option value="all" {{ request('date_filter', 'all') == 'all' ? 'selected' : '' }}>All Time</option>
                             <option value="1" {{ request('date_filter') == '1' ? 'selected' : '' }}>Last 24h</option>
                             <option value="7" {{ request('date_filter') == '7' ? 'selected' : '' }}>Last 7 days</option>
                             <option value="30" {{ request('date_filter') == '30' ? 'selected' : '' }}>Last 30 days</option>
                             <option value="90" {{ request('date_filter') == '90' ? 'selected' : '' }}>Last 90 days</option>
+                            
+                            <option value="custom" {{ request('date_filter') == 'custom' ? 'selected' : '' }}>Custom Range</option>
                         </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div id="custom_date_range_fields" style="display: none;">
+                            <label class="form-label small">Custom Dates</label>
+                            <div class="d-flex align-items-center">
+                                <input type="date" class="form-control form-control-sm" name="start_date" value="{{ request('start_date') }}">
+                                <span class="mx-2">to</span>
+                                <input type="date" class="form-control form-control-sm" name="end_date" value="{{ request('end_date') }}">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Filtro por Valor Mínimo -->

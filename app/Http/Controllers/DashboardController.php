@@ -147,7 +147,15 @@ class DashboardController extends Controller
             $transactionsQuery->where('type_transaction', $request->type_transaction);
         }
 
-        if ($request->filled('date_filter')) {
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+    
+            // Converte as datas para o formato correto e garante que o dia inteiro seja incluído
+            $startDate = Carbon::parse($request->start_date)->startOfDay(); // ex: 2025-09-01 00:00:00
+            $endDate = Carbon::parse($request->end_date)->endOfDay();       // ex: 2025-09-02 23:59:59
+
+            $transactionsQuery->whereBetween('created_at', [$startDate, $endDate]);
+
+        }elseif ($request->filled('date_filter')) {
             $days = $request->date_filter;
             if ($days != 'all') {
                 $transactionsQuery->where('created_at', '>=', now()->subDays($days));
