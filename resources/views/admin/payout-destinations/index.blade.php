@@ -1,6 +1,6 @@
 @extends('layouts/contentNavbarLayout')
 
-@extends('layouts.admin')
+
 
 @section('title', 'Add New PIX Key Destination')
 
