@@ -18,7 +18,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserFeeController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Admin\PayoutDestinationController;
 use App\Http\Controllers\Api\DashboardController as ApiDashboardController;
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\FeeProfileController;
@@ -99,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+    Route::resource('admin/payout-destinations', PayoutDestinationController::class)->names('admin.payout-destinations');
 
     // Rota para associar um sócio a uma conta
     Route::post('/accounts/{account}/partners', [AccountController::class, 'attachPartner'])->name('accounts.partners.attach');
