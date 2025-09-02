@@ -62,7 +62,7 @@
                             <select name="source_bank_id" id="source_bank_id" class="form-select" required>
                                 <option value="">Select source account...</option>
                                 @foreach ($sourceBanks as $bank)
-                                    <option value="{{ $bank->id }}">{{ $bank->nickname }} ({{ $bank->bank_name }})</option>
+                                    <option value="{{ $bank->id }}">{{ $bank->name }} </option>
                                 @endforeach
                             </select>
                         </div>
