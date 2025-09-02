@@ -374,6 +374,9 @@
                         <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">
                             <i class="bx bx-x me-1"></i>Clear
                         </a>
+                        <a href="{{ route('dashboard.export', request()->query()) }}" class="btn btn-success btn-sm ms-2">
+                            <i class="bx bx-spreadsheet me-1"></i>Export XLS
+                        </a>
                     </div>
                 </form>
             </div>
