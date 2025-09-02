@@ -12,7 +12,7 @@ class ReportController extends Controller
     public function summary()
     {
         // --- 1. Definição das Datas ---
-        $currentStartDate = Carbon::parse('2025-09-01 17:00:00');
+        $currentStartDate = Carbon::parse('2025-09-01 17:10:00');
         $currentEndDate = now();
 
         // Calcula a duração do período atual para encontrar o período anterior equivalente
