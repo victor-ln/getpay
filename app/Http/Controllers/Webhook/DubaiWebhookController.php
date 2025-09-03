@@ -197,7 +197,7 @@ class DubaiWebhookController extends Controller
         DB::transaction(function () use ($payment, $payload) {
             $balance = Balance::firstOrCreate(
                 [
-                    'account_id'  => $payment->account_id,
+                    'account_id'  => $payment->account_id, 
                     'acquirer_id' => $payment->provider_id,
                 ],
                 [
