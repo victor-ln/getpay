@@ -225,7 +225,7 @@ class DubaiWebhookController extends Controller
             $payment->end_to_end_id = $payload['bankData']['endToEndId'] ?? '---';
             $payment->provider_response_data = $payload;
             $payment->name = $payload['bankData']['name'] ?? '---';
-            $payment->document = $payload['bankData']['payerDocument'] ?? '---';
+            $payment->document = $payload['bankData']['documentNumber'] ?? '---';
             $payment->platform_profit = (float) ($fee - $cost);
             $payment->save();
 
