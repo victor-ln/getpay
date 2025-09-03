@@ -39,6 +39,8 @@ class DubaiWebhookController extends Controller
         $this->acquirerResolver = $acquirerResolverService;
         $this->feeCalculatorService = $feeCalculatorService;
     }
+
+    
     /**
      * Handle incoming webhooks from the Dubai acquirer.
      *
