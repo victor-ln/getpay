@@ -23,8 +23,6 @@ class DubaiWebhookController extends Controller
 
     use ToastTrait;
 
-
-
     protected $feeService;
     protected $platformTransactionService;
     protected $acquirerResolver;
