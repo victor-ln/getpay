@@ -10,66 +10,54 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Passo 1: Fazer o checkout do código
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # Passo 2: Configurar o ambiente PHP
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql, zip, gd
-        tools: composer:v2
-        coverage: none
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql, zip, gd
+          tools: composer:v2
+          coverage: none
 
-    # Passo 3: Cache das dependências do Composer para acelerar o processo
-    - name: Cache Composer dependencies
-      uses: actions/cache@v3
-      with:
-        path: vendor
-        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-        restore-keys: ${{ runner.os }}-composer-
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
-    # Passo 4: Instalar dependências do Composer
-    - name: Install Composer dependencies
-      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
 
-    # Passo 5: Configurar o ambiente Node.js com cache
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
 
-    # Passo 6: Instalar dependências NPM de forma limpa e confiável
-    - name: Install NPM dependencies
-      run: npm ci
+      - name: Install NPM dependencies
+        run: npm ci
 
-    # Passo 7: Compilar os assets com Vite
-    - name: Build assets with Vite
-      run: npm run build
+      - name: Build assets with Vite
+        run: npm run build
 
-    # Passo 8: Preparar o ambiente Laravel para produção (limpeza)
-    # Remove o .env de exemplo, pois a Azure usará as suas próprias variáveis de ambiente
-    - name: Prepare Laravel environment for production
-      run: |
-        rm -f .env
-        php artisan config:clear
-        php artisan view:clear
-        php artisan route:clear
+      - name: Prepare Laravel environment for production
+        run: |
+          rm -f .env
+          php artisan config:clear
+          php artisan view:clear
+          php artisan route:clear
 
-    # Passo 9: [A CORREÇÃO] Empacotar a aplicação para o deploy
-    # Este passo cria um zip que inclui as pastas 'vendor/' e 'public/build/'
-    - name: Create deployment package
-      run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*"
+      - name: Create deployment package
+        run: zip -r deployment.zip . -x ".git/*" -x ".github/*" -x "node_modules/*"
 
-    # Passo 10: Fazer o deploy para a Azure Web App
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: 'app-getpay-prod-2'
-        slot-name: 'staging'
-        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
-        
-        package: './deployment.zip'
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: "app-getpay-prod-3"
+          slot-name: "staging"
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_58CEDE20349640D6921683CEBAC3DEFB }}
+
+          package: "./deployment.zip"
