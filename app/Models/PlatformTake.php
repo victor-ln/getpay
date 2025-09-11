@@ -30,6 +30,13 @@ class PlatformTake extends Model
         'payout_status',
         'payout_provider_transaction_id',
         'payout_failure_reason',
+        'total_net_profit',
+        'total_volume_in',
+        'total_volume_out',
+        'total_fees_in',
+        'total_fees_out',
+        'total_costs_in',
+        'total_costs_out',
     ];
 
     /**

@@ -103,9 +103,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
 
 
-    Route::get('admin/test-report', [ReportController::class, 'summary'])->name('admin.reports.summary');
-    Route::get('admin/takes/create', [TakeController::class, 'create'])->name('admin.takes.create');
-    Route::post('admin/takes', [TakeController::class, 'store'])->name('admin.takes.store');
+    Route::prefix('admin/takes')->name('admin.takes.')->group(function () {
+        Route::get('/', [TakeController::class, 'index'])->name('index');
+        Route::get('/create', [TakeController::class, 'create'])->name('create');
+        Route::post('/', [TakeController::class, 'store'])->name('store');
+        Route::get('/{take}', [TakeController::class, 'show'])->name('show');
+    });
     Route::resource('admin/payout-destinations', PayoutDestinationController::class)->names('admin.payout-destinations');
 
     // Rota para associar um sócio a uma conta

@@ -71,4 +71,11 @@ class Payment extends Model
         // 'id' é a chave primária na tabela 'banks'
         return $this->belongsTo(Bank::class, 'provider_id', 'id');
     }
+
+    public function account()
+    {
+        // O Laravel irá procurar pela chave estrangeira 'account_id' na tabela 'payments'
+        // para fazer a ligação com a tabela 'accounts'.
+        return $this->belongsTo(Account::class, 'account_id');
+    }
 }

@@ -56,6 +56,13 @@
             "icon": "menu-icon tf-icons bx bx-group",
             "slug": "accounts",
             "access": ["admin", "client"]
+        },
+        {
+            "url": "/admin/takes",
+            "name": "Take",
+            "icon": "menu-icon tf-icons bx bx-money",
+            "slug": "takes",
+            "access": ["admin"]
         }
     ]
 }

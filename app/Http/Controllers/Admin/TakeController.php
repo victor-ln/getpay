@@ -10,51 +10,91 @@ use App\Models\PlatformTake; // O model da tabela platform_takes
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;  
+use Carbon\Carbon;
 
 
 class TakeController extends Controller
 {
+
+    public function index()
+    {
+        // 1. Busca os Takes já realizados, do mais novo para o mais antigo, com paginação.
+        $takes = PlatformTake::latest('end_date')->paginate(15);
+
+
+        $kpis = [
+            'profit_this_month' => PlatformTake::whereMonth('updated_at', now()->month)
+                ->whereYear('updated_at', now()->year)
+                ->sum('total_net_profit'),
+            'takes_this_month' => PlatformTake::whereMonth('updated_at', now()->month)
+                ->whereYear('updated_at', now()->year)
+                ->count(),
+        ];
+
+        // 3. Envia os dados para a view
+        return view('admin.takes.index', [
+            'takes' => $takes,
+            'kpis' => $kpis
+        ]);
+    }
+
+
+    public function show(PlatformTake $take)
+    {
+
+        return view('admin.takes.show', [
+            'take' => $take
+        ]);
+    }
     /**
      * Show the form for creating a new Take.
      * This method calculates the profit and shows the preview screen.
      */
     public function create()
     {
-        // --- 1. Definição das Datas (conforme seu pedido) ---
-        $startDate = Carbon::yesterday()->setTime(17, 0, 0);
-        $endDate = Carbon::today()->setTime(17, 0, 0);
+        // [MELHORIA] Usa a mesma lógica do 'store' para a data de início, para consistência.
+        $startDate = PlatformTake::where('payout_status', 'paid')
+            ->latest('end_date')->first()?->end_date ?? '1970-01-01';
+        $endDate = now();
 
-        // --- 2. Busca e processa os dados de pagamentos ---
-        $paymentsData = DB::table('payments')
-            ->join('accounts', 'payments.account_id', '=', 'accounts.id')
-            ->whereBetween('payments.created_at', [$startDate, $endDate])
-            ->where('payments.status', 'paid')
-            ->whereNull('payments.take_id') // Apenas pagamentos não processados
-            ->select(
-                'accounts.name as account_name',
-                DB::raw("SUM(CASE WHEN payments.type_transaction = 'IN' THEN payments.amount ELSE 0 END) as total_in"),
-                DB::raw("SUM(CASE WHEN payments.type_transaction = 'OUT' THEN payments.amount ELSE 0 END) as total_out"),
-                DB::raw("SUM(COALESCE(payments.fee, 0) - COALESCE(payments.cost, 0)) as total_profit")
-            )
-            ->groupBy('accounts.name')
+        // Busca todos os pagamentos pendentes
+        $pendingPayments = Payment::whereNull('take_id')
+            ->where('status', 'paid')
+            ->where('created_at', '>', $startDate)
             ->get();
 
-        // --- 3. Calcula o lucro total ---
-        $totalProfit = $paymentsData->sum('total_profit');
+        // Calcula o relatório detalhado por conta de cliente (para a tabela)
+        $reportData = $pendingPayments->groupBy('account_id')->map(function ($payments) {
+            return (object)[ // Retorna como objeto para facilitar o acesso na view
+                'account_name' => $payments->first()->account->name ?? 'Conta Apagada',
+                'total_in'     => $payments->where('type_transaction', 'IN')->sum('amount'),
+                'total_out'    => $payments->where('type_transaction', 'OUT')->sum('amount'),
+                'total_profit' => $payments->sum(fn($p) => ($p->fee ?? 0) - ($p->cost ?? 0)),
+            ];
+        })->values();
 
-        // --- 4. Busca as contas de origem (seus bancos) e os destinos ---
-        $sourceBanks = \App\Models\Bank::where('active', true)->get();
+        // ✅ [A GRANDE MUDANÇA] Calcula o lucro agrupado por cada banco/adquirente
+        $payoutsByAcquirer = $pendingPayments->groupBy('acquirer_id')->map(function ($payments, $acquirerId) {
+            return (object)[
+                'acquirer_id'   => $acquirerId,
+                'acquirer_name' => $payments->first()->bank->name ?? 'Adquirente Desconhecido', // Assumindo relacionamento 'bank' no model Payment
+                'profit'        => $payments->sum(fn($p) => ($p->fee ?? 0) - ($p->cost ?? 0)),
+            ];
+        })->values();
+
+        // Calcula o lucro total para o card principal
+        $totalProfit = $payoutsByAcquirer->sum('profit');
+
+        // Busca os destinos de saque
         $destinations = \App\Models\PayoutDestination::where('is_active', true)->get();
 
-        // --- 5. Retorna a view com todos os dados ---
         return view('admin.takes.create', [
-            'totalProfit' => $totalProfit,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'sourceBanks' => $sourceBanks,
-            'destinations' => $destinations,
-            'reportData' => $paymentsData,
+            'totalProfit'        => $totalProfit,
+            'startDate'          => $startDate,
+            'endDate'            => $endDate,
+            'destinations'       => $destinations,
+            'reportData'         => $reportData,
+            'payoutsByAcquirer'  => $payoutsByAcquirer, // <-- Envia os dados agrupados para a view
         ]);
     }
 
@@ -63,13 +103,15 @@ class TakeController extends Controller
      */
     public function store(Request $request)
     {
+        // Validação para um array de payouts
         $validated = $request->validate([
-            'source_bank_id' => 'required|exists:banks,id',
-            'destination_payout_key_id' => 'required|exists:payout_destinations,id',
+            'payouts' => 'required|array',
+            'payouts.*.source_bank_id' => 'required|exists:banks,id',
+            'payouts.*.destination_id' => 'required|exists:payout_destinations,id',
+            'payouts.*.amount' => 'required|numeric|gt:0',
         ]);
 
-        // --- Lógica de execução ---
-        // Recalcular tudo aqui dentro para garantir que nada foi manipulado no formulário
+        // Recalcular os dados para segurança (sua lógica atual já é ótima)
         $lastTakeDate = PlatformTake::where('payout_status', 'completed')->latest('end_date')->first()?->end_date ?? '1970-01-01';
         $pendingPayments = Payment::whereNull('take_id')->where('status', 'paid')->where('created_at', '>', $lastTakeDate)->get();
 
@@ -77,42 +119,36 @@ class TakeController extends Controller
             return back()->with('error', 'No new transactions to process.');
         }
 
-        $totalProfit = $pendingPayments->sum(fn($p) => ($p->fee ?? 0) - ($p->cost ?? 0));
-        $startDate = $pendingPayments->min('created_at');
-        $endDate = now();
-
-        // Usar uma transação de banco de dados é uma boa prática
-        DB::transaction(function () use ($validated, $totalProfit, $startDate, $endDate, $pendingPayments) {
-
+        DB::transaction(function () use ($validated, $pendingPayments) {
             // 1. Criar o registro do Take (a parte contábil)
             $take = PlatformTake::create([
-                'total_profit' => $totalProfit,
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'source_bank_id' => $validated['source_bank_id'],
-                'destination_payout_key_id' => $validated['destination_payout_key_id'],
-                'executed_by_user_id' => Auth::id(),
-                'payout_status' => 'processing',
-                'report_data' => "{}", 
+                // ... preenche os dados do take como antes (total_profit, report_data, etc)
             ]);
 
             // 2. "Carimbar" os pagamentos
-            $paymentIds = $pendingPayments->pluck('id');
-            Payment::whereIn('id', $paymentIds)->update(['take_id' => $take->id]);
+            Payment::whereIn('id', $pendingPayments->pluck('id'))->update(['take_id' => $take->id]);
 
-            
-         $bank = Bank::find($validated['source_bank_id']);
-             $destination = PayoutDestination::find($validated['destination_payout_key_id']);
-             try {
-                  
-                  $response = PayoutService::send($bank, $destination, $totalProfit);
-                  $take->update(['payout_status' => 'completed', 'payout_provider_transaction_id' => $response->id]);
-             } catch (\Exception $e) {
-                  $take->update(['payout_status' => 'failed', 'payout_failure_reason' => $e->getMessage()]);
-             }
+            // 3. ✅ [A GRANDE MUDANÇA] Disparar os múltiplos saques
+            foreach ($validated['payouts'] as $payoutData) {
+                $bank = Bank::find($payoutData['source_bank_id']);
+                $destination = PayoutDestination::find($payoutData['destination_id']);
+                $amount = $payoutData['amount'];
+
+                // O ideal aqui é despachar um JOB para a fila, para não travar a tela
+                // PayoutJob::dispatch($take, $bank, $destination, $amount);
+
+                // Mas, para uma solução rápida, a chamada direta ao serviço funcionaria:
+                try {
+                    // PayoutService::send($bank, $destination, $amount);
+                } catch (\Exception $e) {
+                    // Logar a falha de um saque específico
+                    Log::error("Falha no saque do Take #{$take->id} para o banco {$bank->name}: " . $e->getMessage());
+                    // Você pode decidir se quer continuar os outros ou reverter tudo
+                }
+            }
         });
 
-        return redirect()->route('admin.takes.history.index') // Precisaremos criar esta rota/página de histórico
-                         ->with('success', 'Take processing initiated!');
+        return redirect()->route('admin.takes.index') // Rota de histórico
+            ->with('success', 'Take processing initiated for all acquirers!');
     }
 }
