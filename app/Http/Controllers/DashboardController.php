@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Exports\TransactionsExport; 
+use App\Exports\TransactionsExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 
@@ -96,10 +96,10 @@ class DashboardController extends Controller
             'total'        => $withdrawableBalance + $otherActiveBalance + $totalBlocked,
         ];
 
-        $startDate = now()->startOfDay();
+        $kpiStartDate = $this->getKpiDateRange($request);
 
-        // Query base para as transações da conta selecionada nas últimas 24h
-        $baseKpiQuery = $selectedAccount->payments()->where('created_at', '>=', $startDate);
+        // Query base para os KPIs (agora usando o período filtrado)
+        $baseKpiQuery = $selectedAccount->payments()->where('created_at', '>=', $kpiStartDate);
 
         // KPIs for PAY IN
         $kpiInQuery = $baseKpiQuery->clone()->where('type_transaction', 'IN');
@@ -134,7 +134,6 @@ class DashboardController extends Controller
 
 
 
-
         // Busca as chaves PIX da conta selecionada
         $pixKeys = $selectedAccount->pixKeys()->get();
 
@@ -150,14 +149,13 @@ class DashboardController extends Controller
         }
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
-    
+
             // Converte as datas para o formato correto e garante que o dia inteiro seja incluído
             $startDate = Carbon::parse($request->start_date)->startOfDay(); // ex: 2025-09-01 00:00:00
             $endDate = Carbon::parse($request->end_date)->endOfDay();       // ex: 2025-09-02 23:59:59
 
             $transactionsQuery->whereBetween('created_at', [$startDate, $endDate]);
-
-        }elseif ($request->filled('date_filter')) {
+        } elseif ($request->filled('date_filter')) {
             $days = $request->date_filter;
             if ($days != 'all') {
                 $transactionsQuery->where('created_at', '>=', now()->subDays($days));
@@ -191,6 +189,7 @@ class DashboardController extends Controller
         // =======================================================
         // --- 3. RETORNO PARA A VIEW ---
         // =======================================================
+        $kpiPeriod = $this->getKpiPeriodLabel($request);
 
         return view('dashboard.index', [
             'loggedInUser'        => $loggedInUser,
@@ -199,9 +198,10 @@ class DashboardController extends Controller
             'balanceData'         => $balanceData,
             'recentTransactions'  => $recentTransactions,
             'pixKeys'             => $pixKeys,
-            'kpiIn'               => $kpiIn,           // <-- NOVO
-            'kpiOut'              => $kpiOut,          // <-- NOVO
+            'kpiIn'               => $kpiIn,
+            'kpiOut'              => $kpiOut,
             'profitSummary'       => $profitSummary,
+            'kpiPeriod'           => $kpiPeriod,
         ]);
     }
 
@@ -291,5 +291,51 @@ class DashboardController extends Controller
         // Chama a classe TransactionsExport, passando os filtros da request,
         // e o método download inicia o download no navegador do usuário.
         return Excel::download(new TransactionsExport($request), $fileName);
+    }
+
+    /**
+     * Determina a data de início para os KPIs baseado nos filtros aplicados
+     */
+    private function getKpiDateRange(Request $request): Carbon
+    {
+        // Se há filtro de data específico (start_date e end_date)
+        if ($request->filled('start_date')) {
+            return Carbon::parse($request->start_date)->startOfDay();
+        }
+
+        // Se há filtro de período (date_filter)
+        if ($request->filled('date_filter')) {
+            $days = $request->date_filter;
+            if ($days != 'all') {
+                return now()->subDays($days);
+            }
+            // Se for 'all', usa os últimos 30 dias como padrão
+            return now()->subDays(30);
+        }
+
+        // Padrão: últimas 24 horas
+        return now()->subDay();
+    }
+
+    private function getKpiPeriodLabel(Request $request): string
+    {
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $startDate = Carbon::parse($request->start_date)->format('d/m/Y');
+            $endDate = Carbon::parse($request->end_date)->format('d/m/Y');
+            return " {$startDate} - {$endDate}";
+        }
+
+        if ($request->filled('date_filter')) {
+            $days = $request->date_filter;
+            return match ($days) {
+                '1' => 'Last 24 hours',
+                '7' => 'Last 7 days',
+                '30' => 'Last 30 days',
+                'all' => 'All Time',
+                default => 'Last 24 hours'
+            };
+        }
+
+        return 'Today';
     }
 }

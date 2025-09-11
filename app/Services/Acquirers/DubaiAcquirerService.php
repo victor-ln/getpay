@@ -76,7 +76,7 @@ class DubaiAcquirerService implements AcquirerInterface
                     'amount' => (float) $data['amount'],
                     'document' => $this->cleanDocument($data['document']),
                     'name' => $data['name'],
-                    'identification' => $data['identification'] ?? 'GETPAY',
+                    'identification' => $data['identification'] ?? ' ATENÇÃO: Este PIX só será processado se pago pelo titular do CPF que gerou a cobrança.',
                     'expire' => $data['expire'] ?? 3600,
                     'description' => $data['description'] ?? 'GETPAY IN',
                     'generatedBy' => 'DUBAI_CASH',

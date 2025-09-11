@@ -149,9 +149,9 @@ $(document).ready(function () {
 
         // Validações
         if (!selectedKey)
-            return showToast("Selecione uma chave PIX.", "warning");
+            return showToast("Select a key to withdraw from.", "warning");
         if (isNaN(amount) || amount <= 0)
-            return showToast("Digite um valor válido.", "warning");
+            return showToast("Invalid amount.", "warning");
         if (amount > availableBalance)
             return showToast("Insufficient available balance.", "danger");
 
@@ -274,7 +274,7 @@ $(document).ready(function () {
     $("#copy-pix-code-btn").on("click", function () {
         navigator.clipboard
             .writeText($("#pix-copy-paste-code").val())
-            .then(() => showToast("Código PIX copiado!", "info"));
+            .then(() => showToast("Copied to clipboard!", "info"));
     });
 
     $("#create-new-deposit-btn, #new-withdrawal-btn").on("click", function () {

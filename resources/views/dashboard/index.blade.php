@@ -18,7 +18,7 @@
 @vite('resources/assets/js/metrics.js')
 @vite('resources/assets/js/dateRangeFilter.js')
 @endsection
- 
+
 @section('content')
 
 {{-- PAINEL DE SELEÇÃO DE CONTA (Funcionalidade mantida) --}}
@@ -192,7 +192,7 @@
         <div class="col-lg-4 col-md-6">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between">
-                    <h5 class="card-title m-0">Pay In (Today)</h5>
+                    <h5 class="card-title m-0">Pay In - {{ $kpiPeriod }}</h5>
                     <span class="badge bg-success">IN</span>
                 </div>
                 <div class="card-body">
@@ -229,7 +229,7 @@
         <div class="col-lg-4 col-md-6">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between">
-                    <h5 class="card-title m-0"> Pay Out (Today)</h5>
+                    <h5 class="card-title m-0"> Pay Out - {{ $kpiPeriod }}</h5>
                     <span class="badge bg-danger">OUT</span>
                 </div>
                 <div class="card-body">
@@ -267,7 +267,7 @@
         <div class="col-lg-4 col-md-12">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="card-title m-0">Profit Summary (Today)</h5>
+                    <h5 class="card-title m-0">Profit Summary - {{ $kpiPeriod }}</h5>
                 </div>
                 <div class="card-body text-center">
                     <h6 class="text-muted">Total Fees (IN + OUT)</h6>
@@ -293,109 +293,113 @@
             <h5 class="mb-0">Recent Transactions</h5>
         </div>
 
-{{-- Novo container para o painel de filtros com fundo e bordas --}}
-<div class="filter-toolbar card-body  border-top border-bottom mb-3 py-3">
-    <form method="GET" action="{{ route('dashboard') }}">
-        <div class="row g-3">
-            {{-- Linha 1: Filtros Principais --}}
-            <div class="col-md-5">
-                <label for="search" class="form-label small">Search</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text"><i class="bx bx-search"></i></span>
-                    <input type="text" class="form-control" name="search" value="{{ request('search') }}"
-                           placeholder="ID, External ID, Provider ID...">
-                </div>
-            </div>
+        {{-- Novo container para o painel de filtros com fundo e bordas --}}
+        <div class="filter-toolbar card-body  border-top border-bottom mb-3 py-3">
+            <form method="GET" action="{{ route('dashboard') }}">
+                <div class="row g-3">
+                    {{-- Linha 1: Filtros Principais --}}
+                    <div class="col-md-5">
+                        <label for="search" class="form-label small">Search</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bx bx-search"></i></span>
+                            <input type="text" class="form-control" name="search" value="{{ request('search') }}"
+                                placeholder="ID, External ID, Provider ID...">
+                        </div>
+                    </div>
 
-            <div class="col-md-2">
-                <label for="status" class="form-label small">Status</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text"><i class="bx bx-tag-alt"></i></span>
-                    <select class="form-select" name="status">
-                        <option value="">All Status</option>
-                        <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Paid</option>
-                        {{-- Outros status --}}
-                    </select>
-                </div>
-            </div>
+                    <div class="col-md-2">
+                        <label for="status" class="form-label small">Status</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class='bx bx-tag-alt'></i></span>
+                            <select class="form-select" name="status">
+                                <option value="">All Status</option>
+                                <option value="paid" @selected(request('status')=='paid' )>Paid</option>
+                                <option value="processing" @selected(request('status')=='processing' )>Processing</option>
+                                <option value="pending" @selected(request('status')=='pending' )>Pending</option>
+                                <option value="failed" @selected(request('status')=='failed' )>Failed</option>
+                                <option value="cancelled" @selected(request('status')=='cancelled' )>Cancelled</option>
+                                <option value="refunded" @selected(request('status')=='refunded' )>Refunded</option>
+                            </select>
+                        </div>
+                    </div>
 
-            <div class="col-md-2">
-                <label for="type_transaction" class="form-label small">Type</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text"><i class="bx bx-transfer-alt"></i></span>
-                    <select class="form-select" name="type_transaction">
-                        <option value="">All Types</option>
-                        <option value="IN" {{ request('type_transaction') == 'IN' ? 'selected' : '' }}>Pay In</option>
-                        <option value="OUT" {{ request('type_transaction') == 'OUT' ? 'selected' : '' }}>Pay Out</option>
-                    </select>
-                </div>
-            </div>
+                    <div class="col-md-2">
+                        <label for="type_transaction" class="form-label small">Type</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bx bx-transfer-alt"></i></span>
+                            <select class="form-select" name="type_transaction">
+                                <option value="">All Types</option>
+                                <option value="IN" {{ request('type_transaction') == 'IN' ? 'selected' : '' }}>Pay In</option>
+                                <option value="OUT" {{ request('type_transaction') == 'OUT' ? 'selected' : '' }}>Pay Out</option>
+                            </select>
+                        </div>
+                    </div>
 
-            <div class="col-md-3">
-                <label for="date_filter_select" class="form-label small">Period</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text"><i class="bx bx-calendar"></i></span>
-                    <select class="form-select" name="date_filter" id="date_filter_select">
-                        <option value="all" {{ request('date_filter', 'all') == 'all' ? 'selected' : '' }}>All Time</option>
-                        <option value="7" {{ request('date_filter') == '7' ? 'selected' : '' }}>Last 7 days</option>
-                        <option value="custom" {{ request('date_filter') == 'custom' ? 'selected' : '' }}>Custom Range</option>
-                        {{-- Outros períodos --}}
-                    </select>
-                </div>
-            </div>
+                    <div class="col-md-3">
+                        <label for="date_filter_select" class="form-label small">Period</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bx bx-calendar"></i></span>
+                            <select class="form-select" name="date_filter" id="date_filter_select">
+                                <option value="all" {{ request('date_filter', 'all') == 'all' ? 'selected' : '' }}>All Time</option>
+                                <option value="7" {{ request('date_filter') == '7' ? 'selected' : '' }}>Last 7 days</option>
+                                <option value="custom" {{ request('date_filter') == 'custom' ? 'selected' : '' }}>Custom Range</option>
+                                {{-- Outros períodos --}}
+                            </select>
+                        </div>
+                    </div>
 
-            {{-- Linha 2: Filtros Secundários e Ações --}}
-            <div class="col-md-2">
-                <label for="amount_min" class="form-label small">Min Amount</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text">R$</span>
-                    <input type="number" step="0.01" class="form-control" name="amount_min"
-                           value="{{ request('amount_min') }}" placeholder="0.00">
-                </div>
-            </div>
-            
-            <div class="col-md-2">
-                <label for="amount_max" class="form-label small">Max Amount</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text">R$</span>
-                    <input type="number" step="0.01" class="form-control" name="amount_max"
-                           value="{{ request('amount_max') }}" placeholder="0.00">
-                </div>
-            </div>
+                    {{-- Linha 2: Filtros Secundários e Ações --}}
+                    <div class="col-md-2">
+                        <label for="amount_min" class="form-label small">Min Amount</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" step="0.01" class="form-control" name="amount_min"
+                                value="{{ request('amount_min') }}" placeholder="0.00">
+                        </div>
+                    </div>
 
-            <div class="col-md-3">
-                {{-- Container das datas customizadas (agora com ícone) --}}
-                <div id="custom_date_range_fields" style="display: none;">
-                    <label class="form-label small">Custom Dates</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text"><i class="bx bx-calendar-event"></i></span>
-                        <input type="date" class="form-control" name="start_date" value="{{ request('start_date') }}">
-                        <input type="date" class="form-control" name="end_date" value="{{ request('end_date') }}">
+                    <div class="col-md-2">
+                        <label for="amount_max" class="form-label small">Max Amount</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" step="0.01" class="form-control" name="amount_max"
+                                value="{{ request('amount_max') }}" placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        {{-- Container das datas customizadas (agora com ícone) --}}
+                        <div id="custom_date_range_fields" style="display: none;">
+                            <label class="form-label small">Custom Dates</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bx bx-calendar-event"></i></span>
+                                <input type="date" class="form-control" name="start_date" value="{{ request('start_date') }}">
+                                <input type="date" class="form-control" name="end_date" value="{{ request('end_date') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Botões de Ação agrupados --}}
+                    <div class="col-md-5 d-flex justify-content-end align-items-end">
+                        <div class="btn-toolbar">
+                            <div class="btn-group me-2">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bx bx-filter-alt me-1"></i>Filter
+                                </button>
+                                <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bx bx-eraser me-1"></i>Clear
+                                </a>
+                            </div>
+                            <div class="btn-group">
+                                <a href="{{ route('dashboard.export', request()->query()) }}" class="btn btn-success btn-sm">
+                                    <i class="bx bx-spreadsheet me-1"></i>Export XLS
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            {{-- Botões de Ação agrupados --}}
-            <div class="col-md-5 d-flex justify-content-end align-items-end">
-                <div class="btn-toolbar">
-                    <div class="btn-group me-2">
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bx bx-filter-alt me-1"></i>Filter
-                        </button>
-                        <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="bx bx-eraser me-1"></i>Clear
-                        </a>
-                    </div>
-                    <div class="btn-group">
-                         <a href="{{ route('dashboard.export', request()->query()) }}" class="btn btn-success btn-sm">
-                            <i class="bx bx-spreadsheet me-1"></i>Export XLS
-                        </a>
-                    </div>
-                </div>
-            </div>
+            </form>
         </div>
-    </form>
-</div>
         <!-- Indicador de filtros ativos (opcional) -->
         @if(request()->hasAny(['status', 'type_transaction', 'date_filter', 'amount_min']))
         <div class="row m-3">

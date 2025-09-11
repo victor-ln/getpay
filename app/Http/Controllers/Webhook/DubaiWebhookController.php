@@ -40,7 +40,7 @@ class DubaiWebhookController extends Controller
         $this->feeCalculatorService = $feeCalculatorService;
     }
 
-    
+
     /**
      * Handle incoming webhooks from the Dubai acquirer.
      *
@@ -197,7 +197,7 @@ class DubaiWebhookController extends Controller
         DB::transaction(function () use ($payment, $payload) {
             $balance = Balance::firstOrCreate(
                 [
-                    'account_id'  => $payment->account_id, 
+                    'account_id'  => $payment->account_id,
                     'acquirer_id' => $payment->provider_id,
                 ],
                 [
@@ -501,6 +501,9 @@ class DubaiWebhookController extends Controller
             }
             if ($payment->status === 'cancelled') {
                 return 'PAYOUT_CANCELED';
+            }
+            if ($payment->status === 'processing') {
+                return 'PAYOUT_PROCESSING';
             }
         }
 
