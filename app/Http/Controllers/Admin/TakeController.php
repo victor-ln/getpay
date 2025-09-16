@@ -53,7 +53,7 @@ class TakeController extends Controller
     public function create()
     {
         // [MELHORIA] Usa a mesma lógica do 'store' para a data de início, para consistência.
-        $startDate = PlatformTake::where('payout_status', 'paid')
+        $startDate = PlatformTake::where('payout_status', 'pending')
             ->latest('end_date')->first()?->end_date ?? '1970-01-01';
         $endDate = now();
 
