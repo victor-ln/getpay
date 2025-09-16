@@ -67,59 +67,59 @@ class DubaiWebhookController extends Controller
         ]);
 
 
-        if (isset($payload['data']['status']) && $payload['data']['status'] == 'FAILED') {
+        // if (isset($payload['data']['status']) && $payload['data']['status'] == 'FAILED') {
 
-            $payment = Payment::where('external_payment_id', $payload['data']['externalId'])->first();
+        //     $payment = Payment::where('external_payment_id', $payload['data']['externalId'])->first();
 
-            if (empty($payment)) {
-                return response()->json(['message' => 'Pay-out não encontrado.'], 200);
-            }
+        //     if (empty($payment)) {
+        //         return response()->json(['message' => 'Pay-out não encontrado.'], 200);
+        //     }
 
-            if ($payment->status == 'paid') {
-                return response()->json(['message' => 'Pay-out com status pago.'], 200);
-            }
-
-
-            $balance = Balance::firstOrCreate(
-                [
-                    'account_id'  => $payment->account_id,
-                    'acquirer_id' => $payment->provider_id,
-                ],
-                [
-                    'available_balance' => 0,
-                    'blocked_balance'   => 0,
-                ]
-            );
+        //     if ($payment->status == 'paid') {
+        //         return response()->json(['message' => 'Pay-out com status pago.'], 200);
+        //     }
 
 
+        //     $balance = Balance::firstOrCreate(
+        //         [
+        //             'account_id'  => $payment->account_id,
+        //             'acquirer_id' => $payment->provider_id,
+        //         ],
+        //         [
+        //             'available_balance' => 0,
+        //             'blocked_balance'   => 0,
+        //         ]
+        //     );
 
 
 
-            $totalBlockedAmount = $payment->amount + $payment->fee;
+
+
+        //     $totalBlockedAmount = $payment->amount + $payment->fee;
 
 
 
-            $payment->status = 'cancelled';
-            $balance->blocked_balance -= $totalBlockedAmount; // Remove do bloqueado
-            $balance->available_balance += $totalBlockedAmount; // E devolve para o disponível
+        //     $payment->status = 'cancelled';
+        //     $balance->blocked_balance -= $totalBlockedAmount; // Remove do bloqueado
+        //     $balance->available_balance += $totalBlockedAmount; // E devolve para o disponível
 
-            Log::info("Pay-out confirmado como 'CANCELED'. Saldo devolvido para disponível.", [
-                'payment_id' => $payment->id,
-                'amount_returned_to_available' => $totalBlockedAmount
-            ]);
+        //     Log::info("Pay-out confirmado como 'CANCELED'. Saldo devolvido para disponível.", [
+        //         'payment_id' => $payment->id,
+        //         'amount_returned_to_available' => $totalBlockedAmount
+        //     ]);
 
-            $payment->save();
-            $balance->save();
+        //     $payment->save();
+        //     $balance->save();
 
 
-            $this->sendOutgoingWebhook($payment->account_id, $payment,  $payload);
+        //     $this->sendOutgoingWebhook($payment->account_id, $payment,  $payload);
 
-            return response()->json(['message' => 'Pay-out confirmado como "CANCELED". Saldo devolvido para disponível, conta: ' . $payment->account_id], 200);
-        }
+        //     return response()->json(['message' => 'Pay-out confirmado como "CANCELED". Saldo devolvido para disponível, conta: ' . $payment->account_id], 200);
+        // }
 
         // 3. Validação do Payload
         $payload = $request->all();
-        if (empty($payload['uuid']) || empty($payload['status'])) {
+        if (empty($payload['status'])) {
             Log::error('Payload de webhook inválido da Dubai: Faltando uuid ou status.', $payload);
             return response()->json(['error' => 'Invalid payload.'], 400);
         }
