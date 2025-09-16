@@ -262,7 +262,7 @@ class DubaiWebhookController extends Controller
 
 
         // Verificamos se o status é um dos que sabemos tratar (FINISHED ou CANCELED)
-        if (!in_array($payload['status'], ['AWAITING', 'COMPLETED'])) {
+        if (!in_array($payload['status'], ['AWAITING', 'COMPLETED', 'FAILED'])) {
             Log::info("Webhook de Pay-Out recebido com status não tratado pela adquirente.", [
                 'payment_id' => $payment->id,
                 'status_recebido' => $payload['status']
@@ -313,6 +313,19 @@ class DubaiWebhookController extends Controller
 
 
                     break;
+
+                case 'FAILED':
+                    // LÓGICA EXISTENTE PARA SAQUE CANCELADO
+
+
+                    $payment->status = 'cancelled';
+                    $balance->blocked_balance -= $totalBlockedAmount; // Remove do bloqueado
+                    $balance->available_balance += $totalBlockedAmount; // E devolve para o disponível
+
+                    Log::info("Pay-out confirmado como 'CANCELED'. Saldo devolvido para disponível.", [
+                        'payment_id' => $payment->id,
+                        'amount_returned_to_available' => $totalBlockedAmount
+                    ]);
             }
 
             $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'OUT', $payment->amount);

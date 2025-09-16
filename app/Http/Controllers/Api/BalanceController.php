@@ -20,28 +20,43 @@ class BalanceController extends Controller
         $user = Auth::user();
         $account = $user->accounts()->first();
 
-
-
-        // 2. Validações de Segurança
+        // 1. Validações de Segurança (mantidas)
         if (!$account) {
             return response()->json(['message' => 'Account not found.'], 404);
         }
-
-        // Garante que o usuário logado tem permissão para ver esta conta
-        // (Esta é uma verificação de segurança crucial)
-        if (!$user->accounts->contains($account->id) && !$user->isAdmin()) { // Supondo um método isAdmin() no seu model User
+        if (!$user->accounts->contains($account->id) && !$user->isAdmin()) {
             return response()->json(['message' => 'Unauthorized access to this account.'], 403);
         }
 
-        // 3. Busca o saldo usando o relacionamento
-        $balance = $account->balance;
+        // --- [INÍCIO DA LÓGICA CORRETA E DETALHADA] ---
 
-        // 4. Monta e retorna a resposta JSON
+        // 2. Pega o saldo do adquirente padrão (o que é SACÁVEL)
+        $currentAcquirerBalance = $account->getCurrentAcquirerBalance();
+        $withdrawableBalance = $currentAcquirerBalance->available_balance ?? 0;
+
+        // 3. Pega o saldo total disponível (somando todos os adquirentes ATIVOS)
+        $totalAvailableBalance = $account->total_available_balance;
+
+        // 4. Calcula os "outros" saldos que não são imediatamente sacáveis
+        $otherActiveBalances = $totalAvailableBalance - $withdrawableBalance;
+
+        // 5. Calcula o total bloqueado em todos os adquirentes ativos
+        $totalBlocked = $account->balances()
+            ->whereHas('bank', function ($query) {
+                $query->where('active', true);
+            })
+            ->sum('blocked_balance');
+
+        // --- [FIM DA LÓGICA CORRETA] ---
+
+        // 6. Monta e retorna a resposta JSON ESTRUTURADA
         return response()->json([
             'success' => true,
             'data' => [
-                'available_balance' => $balance->available_balance ?? 0.00,
-                'blocked_balance' => $balance->blocked_balance ?? 0.00,
+                'withdrawable_balance'    => $withdrawableBalance,
+                'other_active_balances'   => $otherActiveBalances,
+                'total_available_balance' => $totalAvailableBalance,
+                'blocked_balance'         => $totalBlocked,
             ]
         ]);
     }

@@ -57,6 +57,7 @@ class TakeController extends Controller
             ->latest('end_date')->first()?->end_date ?? '1970-01-01';
         $endDate = now();
 
+
         // Busca todos os pagamentos pendentes
         $pendingPayments = Payment::whereNull('take_id')
             ->where('status', 'paid')

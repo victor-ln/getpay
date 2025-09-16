@@ -98,7 +98,8 @@ class ProcessPlatformTake extends Command
 
             // 4. "Carimba" as transações processadas com o ID do novo take
             $paymentIds = $paymentsToProcess->pluck('id');
-            Payment::whereIn('id', $paymentIds)->update(['take_id' => $take->id]);
+            //Payment::whereIn('id', $paymentIds)->update(['take_id' => $take->id]);
+            DB::table('payments')->whereIn('id', $paymentIds)->update(['take_id' => $take->id]);
 
             $this->info("Take #{$take->id} gerado com sucesso! Lucro líquido: R$ " . number_format($take->total_net_profit, 2, ',', '.'));
             $this->info("{$paymentIds->count()} transações foram carimbadas.");
