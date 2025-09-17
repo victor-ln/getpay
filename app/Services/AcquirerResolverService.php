@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Services\Acquirers\DubaiAcquirerService;
 use App\Services\Acquirers\LumenAcquirerService;
 use App\Services\Acquirers\TruztAcquirerService;
+use App\Services\Acquirers\XdpagAcquirerService;
 use Exception; // Use a Exception genérica ou crie uma específica, como AcquirerNotFoundException
 
 class AcquirerResolverService
@@ -21,6 +22,7 @@ class AcquirerResolverService
         'dubai' => DubaiAcquirerService::class,
         'lumenpay' => TruztAcquirerService::class,
         'truztpix' => TruztAcquirerService::class,
+        'xdpag' => XdpagAcquirerService::class
     ];
 
     /**

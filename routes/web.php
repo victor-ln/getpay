@@ -67,8 +67,8 @@ Route::get('/accounts/{account}/history', [PartnerController::class, 'showAccoun
 
 Route::get('/login', [AuthWebController::class, 'loginForm'])->name('login');
 Route::post('/login', [AuthWebController::class, 'login'])->name('login.post');
-// Route::get('/register', [AuthWebController::class, 'registerForm'])->name('register');
-// Route::post('/register', [AuthWebController::class, 'register']);
+Route::get('/register', [AuthWebController::class, 'registerForm'])->name('register');
+Route::post('/register', [AuthWebController::class, 'register']);
 
 // Rota para enviar o link de redefinição de senha
 Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequestForm']);

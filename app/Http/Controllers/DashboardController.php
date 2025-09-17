@@ -3,30 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
-use App\Models\DailyBalance;
-use App\Models\MonthlySummary;
 use App\Models\Payment;
 use App\Models\User;
-use App\Models\WeeklySummary;
 use App\Models\Bank;
-use Illuminate\Support\Facades\DB;
+use App\Exports\TransactionsExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Exports\TransactionsExport;
-use Maatwebsite\Excel\Facades\Excel;
-
-
+use Illuminate\Database\Eloquent\Builder;
 
 class DashboardController extends Controller
 {
+    /**
+     * Exibe o dashboard principal.
+     */
     public function index(Request $request)
     {
         $loggedInUser = Auth::user();
         $accountsForSelector = collect();
         $selectedAccount = null;
 
-        // === Lógica de seleção de conta (mantida) ===
+        // === Lógica de seleção de conta ===
         if ($loggedInUser->isAdmin()) {
             $accountsForSelector = Account::orderBy('name')->get();
             $selectedAccountId = $request->input('account_id', session('selected_account_id'));
@@ -45,146 +43,40 @@ class DashboardController extends Controller
 
         session(['selected_account_id' => $selectedAccount->id]);
 
-        // === CORREÇÃO: Método único para aplicar filtros ===
+        // === Constrói a query base com todos os filtros aplicados ===
         $transactionsQuery = $this->buildFilteredQuery($selectedAccount, $request);
 
-        // Clona a query base para KPIs (mesmos filtros da tabela)
+        // Clona a query base para os KPIs (usará os mesmos filtros da tabela)
         $baseKpiQuery = clone $transactionsQuery;
 
-        // === Saldos (mantido) ===
-        $allBalances = $selectedAccount->balances()->with('bank')->get();
-        $withdrawableBalance = 0;
-        $otherActiveBalance = 0;
-        $totalBlocked = 0;
-
-        foreach ($allBalances as $balance) {
-            if (!$balance->bank || !$balance->bank->active) {
-                continue;
-            }
-            $totalBlocked += $balance->blocked_balance;
-            if ((int)$balance->acquirer_id === (int)$selectedAccount->acquirer_id) {
-                $withdrawableBalance += $balance->available_balance;
-            } else {
-                $otherActiveBalance += $balance->available_balance;
-            }
-        }
-
-        $balanceData = [
-            'withdrawable' => $withdrawableBalance,
-            'other_active' => $otherActiveBalance,
-            'blocked' => $totalBlocked,
-            'total' => $withdrawableBalance + $otherActiveBalance + $totalBlocked,
-        ];
-
-        // === KPIs usando a mesma query filtrada ===
-        // KPIs for PAY IN
-        $kpiInQuery = $baseKpiQuery->clone()->where('type_transaction', 'IN');
-        $kpiInPaidQuery = $kpiInQuery->clone()->where('status', 'paid');
-
-        $kpiIn = [
-            'total_transactions' => $kpiInQuery->count(),
-            'paid_transactions' => $kpiInPaidQuery->clone()->count(),
-            'paid_volume' => $kpiInPaidQuery->clone()->sum('amount'),
-            'total_fees' => $kpiInPaidQuery->clone()->sum('fee'),
-        ];
-
-        // KPIs for PAY OUT
-        $kpiOutQuery = $baseKpiQuery->clone()->where('type_transaction', 'OUT');
-        $kpiOutPaidQuery = $kpiOutQuery->clone()->where('status', 'paid');
-
-        $kpiOut = [
-            'total_transactions' => $kpiOutQuery->count(),
-            'paid_transactions' => $kpiOutPaidQuery->clone()->count(),
-            'paid_volume' => $kpiOutPaidQuery->clone()->sum('amount'),
-            'total_fees' => $kpiOutPaidQuery->clone()->sum('fee'),
-        ];
-
-        // KPIs for PROFIT SUMMARY
-        $profitSummary = null;
-        if ($loggedInUser->isAdmin()) {
-            $profitSummary = [
-                'total_fees' => $kpiIn['total_fees'] + $kpiOut['total_fees'],
-                'net_profit' => $baseKpiQuery->clone()->where('status', 'paid')->sum('platform_profit'),
-            ];
-        }
-
-        // Busca as chaves PIX
+        // === Cálculos para a View ===
+        $balanceData = $this->calculateBalances($selectedAccount);
+        $kpiIn = $this->calculateKpis($baseKpiQuery, 'IN');
+        $kpiOut = $this->calculateKpis($baseKpiQuery, 'OUT');
+        $profitSummary = $this->calculateProfitSummary($loggedInUser, $kpiIn, $kpiOut, $baseKpiQuery);
         $pixKeys = $selectedAccount->pixKeys()->get();
-
-        // === Transações para a tabela (usando a mesma query) ===
-        $recentTransactions = $transactionsQuery->latest()->paginate(10)->withQueryString();
-
         $kpiPeriod = $this->getKpiPeriodLabel($request);
 
-        return view('dashboard.index', [
-            'loggedInUser' => $loggedInUser,
-            'selectedAccount' => $selectedAccount,
-            'accountsForSelector' => $accountsForSelector,
-            'balanceData' => $balanceData,
-            'recentTransactions' => $recentTransactions,
-            'pixKeys' => $pixKeys,
-            'kpiIn' => $kpiIn,
-            'kpiOut' => $kpiOut,
-            'profitSummary' => $profitSummary,
-            'kpiPeriod' => $kpiPeriod,
-        ]);
+        // === Transações para a tabela (limitado a 50 por página) ===
+        $recentTransactions = $transactionsQuery->latest()->paginate(50)->withQueryString();
+
+        return view('dashboard.index', compact(
+            'loggedInUser',
+            'selectedAccount',
+            'accountsForSelector',
+            'balanceData',
+            'recentTransactions',
+            'pixKeys',
+            'kpiIn',
+            'kpiOut',
+            'profitSummary',
+            'kpiPeriod'
+        ));
     }
 
     /**
-     * NOVO MÉTODO: Constrói a query com todos os filtros aplicados
-     * Usado tanto para KPIs quanto para a tabela de transações
+     * Seleciona uma conta para visualização e a guarda na sessão.
      */
-    private function buildFilteredQuery($selectedAccount, Request $request)
-    {
-        $query = $selectedAccount->payments();
-
-        // Filtro de status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Filtro de tipo de transação
-        if ($request->filled('type_transaction')) {
-            $query->where('type_transaction', $request->type_transaction);
-        }
-
-        // Filtros de data
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $startDate = Carbon::parse($request->start_date)->startOfDay();
-            $endDate = Carbon::parse($request->end_date)->endOfDay();
-            $query->whereBetween('updated_at', [$startDate, $endDate]);
-        } elseif ($request->filled('date_filter')) {
-            $days = $request->date_filter;
-            if ($days != 'all') {
-                $query->where('updated_at', '>=', now()->subDays($days));
-            }
-        }
-
-        // Filtros de valor
-        if ($request->filled('amount_min')) {
-            $query->where('amount', '>=', $request->amount_min);
-        }
-
-        if ($request->filled('amount_max')) {
-            $query->where('amount', '<=', $request->amount_max);
-        }
-
-        // Filtro de busca
-        if ($request->filled('search')) {
-            $searchTerm = $request->search;
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('id', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('external_payment_id', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('provider_transaction_id', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('name', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('document', 'LIKE', "%{$searchTerm}%");
-            });
-        }
-
-        return $query;
-    }
-
-    // === Resto dos métodos mantidos ===
     public function selectAccount(Request $request)
     {
         $validated = $request->validate([
@@ -195,27 +87,9 @@ class DashboardController extends Controller
         return redirect()->route('dashboard');
     }
 
-    private function getConfirmedMetrics(string $period, int $accountId): array
-    {
-        $startDate = match ($period) {
-            '7d' => now()->subDays(7),
-            '30d' => now()->subDays(30),
-            default => now()->subHours(24),
-        };
-
-        $confirmedTransactions = \App\Models\Payment::where('account_id', $accountId)
-            ->where('status', 'paid')
-            ->where('created_at', '>=', $startDate)
-            ->get();
-
-        return [
-            'volume' => $confirmedTransactions->sum('amount') ?? 0,
-            'fee' => $confirmedTransactions->sum('fee') ?? 0,
-            'quantity' => $confirmedTransactions->count(),
-            'period' => $period
-        ];
-    }
-
+    /**
+     * Retorna métricas confirmadas para chamadas AJAX.
+     */
     public function getMetrics(Request $request)
     {
         $user = $request->user();
@@ -234,10 +108,119 @@ class DashboardController extends Controller
         return response()->json($metrics);
     }
 
+    /**
+     * Exporta as transações para um ficheiro Excel.
+     */
     public function export(Request $request)
     {
         $fileName = 'transactions-' . now()->format('Y-m-d-His') . '.xlsx';
         return Excel::download(new TransactionsExport($request), $fileName);
+    }
+
+    // =======================================================
+    // MÉTODOS PRIVADOS DE AJUDA
+    // =======================================================
+
+    private function buildFilteredQuery(Account $account, Request $request): Builder
+    {
+        $query = Payment::query()->where('account_id', $account->id);
+
+        // ✅ [CORREÇÃO] A lógica de intervalo de datas customizado foi adicionada aqui
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $startDate = Carbon::parse($request->start_date)->startOfDay();
+            $endDate = Carbon::parse($request->end_date)->endOfDay();
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        } else {
+            // Se não houver um intervalo customizado, aplica o filtro de período predefinido
+            $period = $request->input('date_filter', 'today'); // 'today' como padrão
+
+            switch ($period) {
+                case 'yesterday':
+                    $query->whereDate('created_at', now()->subDay());
+                    break;
+                case '7_days':
+                    $query->where('created_at', '>=', now()->subDays(7)->startOfDay());
+                    break;
+                case '30_days':
+                    $query->where('created_at', '>=', now()->subDays(30)->startOfDay());
+                    break;
+                case 'today':
+                    $query->whereDate('created_at', now());
+                    break;
+                    // O caso 'all' ou 'custom' (sem datas) simplesmente não aplica filtro de data
+            }
+        }
+
+        // Outros filtros
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('type_transaction')) {
+            $query->where('type_transaction', $request->type_transaction);
+        }
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('id', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('external_payment_id', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('provider_transaction_id', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('name', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('document', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        return $query;
+    }
+
+    private function calculateBalances(Account $selectedAccount): array
+    {
+        $withdrawableBalance = 0;
+        $otherActiveBalance = 0;
+        $totalBlocked = 0;
+
+        $allBalances = $selectedAccount->balances()->with('bank')->get();
+
+        foreach ($allBalances as $balance) {
+            if (!$balance->bank || !$balance->bank->active) continue;
+
+            $totalBlocked += $balance->blocked_balance;
+            if ((int)$balance->acquirer_id === (int)$selectedAccount->acquirer_id) {
+                $withdrawableBalance += $balance->available_balance;
+            } else {
+                $otherActiveBalance += $balance->available_balance;
+            }
+        }
+
+        return [
+            'withdrawable' => $withdrawableBalance,
+            'other_active' => $otherActiveBalance,
+            'blocked' => $totalBlocked,
+            'total' => $withdrawableBalance + $otherActiveBalance + $totalBlocked,
+        ];
+    }
+
+    private function calculateKpis(Builder $baseQuery, string $type): array
+    {
+        $query = $baseQuery->clone()->where('type_transaction', $type);
+        $paidQuery = $query->clone()->where('status', 'paid');
+
+        return [
+            'total_transactions' => $query->count(),
+            'paid_transactions' => $paidQuery->clone()->count(),
+            'paid_volume' => $paidQuery->clone()->sum('amount'),
+            'total_fees' => $paidQuery->clone()->sum('fee'),
+        ];
+    }
+
+    private function calculateProfitSummary(User $loggedInUser, array $kpiIn, array $kpiOut, Builder $baseKpiQuery): ?array
+    {
+        if ($loggedInUser->isAdmin()) {
+            return [
+                'total_fees' => $kpiIn['total_fees'] + $kpiOut['total_fees'],
+                'net_profit' => $baseKpiQuery->clone()->where('status', 'paid')->sum('platform_profit'),
+            ];
+        }
+        return null;
     }
 
     private function getKpiPeriodLabel(Request $request): string
@@ -245,20 +228,39 @@ class DashboardController extends Controller
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $startDate = Carbon::parse($request->start_date)->format('d/m/Y');
             $endDate = Carbon::parse($request->end_date)->format('d/m/Y');
-            return " {$startDate} - {$endDate}";
+            return "{$startDate} to {$endDate}";
         }
 
-        if ($request->filled('date_filter')) {
-            $days = $request->date_filter;
-            return match ($days) {
-                '1' => 'Last 24 hours',
-                '7' => 'Last 7 days',
-                '30' => 'Last 30 days',
-                'all' => 'All Time',
-                default => 'Last 24 hours'
-            };
-        }
+        $period = $request->input('date_filter', 'today');
+        $labels = [
+            'today' => 'Today',
+            'yesterday' => 'Yesterday',
+            '7_days' => 'Last 7 Days',
+            '30_days' => 'Last 30 Days',
+            'all' => 'All Time',
+        ];
 
-        return 'Today';
+        return $labels[$period] ?? 'Filtered Period';
+    }
+
+    private function getConfirmedMetrics(string $period, int $accountId): array
+    {
+        $startDate = match ($period) {
+            '7d' => now()->subDays(7),
+            '30d' => now()->subDays(30),
+            default => now()->subHours(24),
+        };
+
+        $confirmedTransactions = Payment::where('account_id', $accountId)
+            ->where('status', 'paid')
+            ->where('created_at', '>=', $startDate)
+            ->get();
+
+        return [
+            'volume' => $confirmedTransactions->sum('amount') ?? 0,
+            'fee' => $confirmedTransactions->sum('fee') ?? 0,
+            'quantity' => $confirmedTransactions->count(),
+            'period' => $period
+        ];
     }
 }
