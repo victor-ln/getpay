@@ -342,6 +342,8 @@
                             <select class="form-select" name="date_filter" id="date_filter_select">
                                 <option value="all" {{ request('date_filter', 'all') == 'all' ? 'selected' : '' }}>All Time</option>
                                 <option value="7" {{ request('date_filter') == '7' ? 'selected' : '' }}>Last 7 days</option>
+                                <option value="15" {{ request('date_filter') == '15' ? 'selected' : '' }}>Last 15 days</option>
+                                <option value="30" {{ request('date_filter') == '30' ? 'selected' : '' }}>Last 30 days</option>
                                 <option value="custom" {{ request('date_filter') == 'custom' ? 'selected' : '' }}>Custom Range</option>
                                 {{-- Outros períodos --}}
                             </select>

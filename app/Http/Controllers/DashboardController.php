@@ -125,33 +125,36 @@ class DashboardController extends Controller
     {
         $query = Payment::query()->where('account_id', $account->id);
 
-        // ✅ [CORREÇÃO] A lógica de intervalo de datas customizado foi adicionada aqui
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $startDate = Carbon::parse($request->start_date)->startOfDay();
-            $endDate = Carbon::parse($request->end_date)->endOfDay();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
-        } else {
-            // Se não houver um intervalo customizado, aplica o filtro de período predefinido
-            $period = $request->input('date_filter', 'today'); // 'today' como padrão
+        // ✅ [CORREÇÃO] Lógica de filtro de data com a prioridade correta
+        $period = $request->input('date_filter', 'today');
 
+        // A prioridade é para os filtros rápidos. Se um deles for selecionado (e não for "all"),
+        // ele sobrepõe-se a qualquer `start_date` ou `end_date` que possa ter ficado na URL.
+        if (in_array($period, ['today', 'yesterday', '7', '30'])) {
             switch ($period) {
                 case 'yesterday':
                     $query->whereDate('created_at', now()->subDay());
                     break;
-                case '7_days':
+                case '7':
                     $query->where('created_at', '>=', now()->subDays(7)->startOfDay());
                     break;
-                case '30_days':
+                case '30':
                     $query->where('created_at', '>=', now()->subDays(30)->startOfDay());
                     break;
                 case 'today':
                     $query->whereDate('created_at', now());
                     break;
-                    // O caso 'all' ou 'custom' (sem datas) simplesmente não aplica filtro de data
             }
         }
+        // Se nenhum filtro rápido for usado, então verificamos se há um intervalo de datas customizado.
+        elseif ($request->filled('start_date') && $request->filled('end_date')) {
+            $startDate = Carbon::parse($request->start_date)->startOfDay();
+            $endDate = Carbon::parse($request->end_date)->endOfDay();
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        // Se `date_filter` for 'all' ou outro valor, não aplicamos nenhum filtro de data.
 
-        // Outros filtros
+        // Outros filtros...
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -165,7 +168,8 @@ class DashboardController extends Controller
                     ->orWhere('external_payment_id', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('provider_transaction_id', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('name', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('document', 'LIKE', "%{$searchTerm}%");
+                    ->orWhere('document', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('end_to_end_id', 'LIKE', "%{$searchTerm}%");
             });
         }
 
@@ -225,22 +229,22 @@ class DashboardController extends Controller
 
     private function getKpiPeriodLabel(Request $request): string
     {
-        if ($request->filled('start_date') && $request->filled('end_date')) {
+        $period = $request->input('date_filter', 'today');
+
+        if ($request->filled('start_date') && $request->filled('end_date') && !in_array($period, ['today', 'yesterday', '7', '30'])) {
             $startDate = Carbon::parse($request->start_date)->format('d/m/Y');
             $endDate = Carbon::parse($request->end_date)->format('d/m/Y');
             return "{$startDate} to {$endDate}";
         }
 
-        $period = $request->input('date_filter', 'today');
-        $labels = [
+        return match ($period) {
             'today' => 'Today',
             'yesterday' => 'Yesterday',
-            '7_days' => 'Last 7 Days',
-            '30_days' => 'Last 30 Days',
+            '7' => 'Last 7 Days',
+            '30' => 'Last 30 Days',
             'all' => 'All Time',
-        ];
-
-        return $labels[$period] ?? 'Filtered Period';
+            default => 'Filtered Period',
+        };
     }
 
     private function getConfirmedMetrics(string $period, int $accountId): array
