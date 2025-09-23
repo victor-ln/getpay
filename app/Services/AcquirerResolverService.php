@@ -72,6 +72,28 @@ class AcquirerResolverService
         return new $acquirerServiceClass($acquirer);
     }
 
+    public function resolveByBank(Bank $bank): object
+    {
+        // 1. Valida se o banco está ativo
+        if (!$bank->active) {
+            throw new Exception("O adquirente '{$bank->name}' está inativo.");
+        }
+
+        // 2. Extrai o nome do adquirente (a sua lógica original)
+        $nameParts = explode(' ', $bank->name);
+        $acquirerName = strtolower($nameParts[0]);
+
+        // 3. Verifica se o adquirente está mapeado para uma classe de serviço
+        if (!isset($this->acquirerClasses[$acquirerName])) {
+            throw new Exception("Serviço de adquirente para '{$acquirerName}' não configurado.");
+        }
+
+        // 4. Obtém o nome da classe e instancia o serviço, passando o objeto do banco
+        $acquirerServiceClass = $this->acquirerClasses[$acquirerName];
+
+        return new $acquirerServiceClass($bank);
+    }
+
     /**
      * 
      *

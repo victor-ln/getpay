@@ -63,6 +63,13 @@
             "icon": "menu-icon tf-icons bx bx-money",
             "slug": "takes",
             "access": ["admin"]
+        },
+        {
+            "url": "/download",
+            "name": "Download Report",
+            "icon": "menu-icon tf-icons bx bx-download",
+            "slug": "downloads",
+            "access": ["admin", "client"]
         }
     ]
 }

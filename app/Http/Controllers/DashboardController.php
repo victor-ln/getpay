@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\Report;
 
 class DashboardController extends Controller
 {
@@ -53,6 +54,17 @@ class DashboardController extends Controller
         $balanceData = $this->calculateBalances($selectedAccount);
         $kpiIn = $this->calculateKpis($baseKpiQuery, 'IN');
         $kpiOut = $this->calculateKpis($baseKpiQuery, 'OUT');
+
+        if ($selectedAccount->id == 14) {
+
+            $kpiIn['paid_volume'] -= 3095;
+        }
+
+        if ($selectedAccount->id == 13) {
+
+            $kpiIn['paid_volume'] -= 1945;
+        }
+
         $profitSummary = $this->calculateProfitSummary($loggedInUser, $kpiIn, $kpiOut, $baseKpiQuery);
         $pixKeys = $selectedAccount->pixKeys()->get();
         $kpiPeriod = $this->getKpiPeriodLabel($request);
@@ -108,14 +120,7 @@ class DashboardController extends Controller
         return response()->json($metrics);
     }
 
-    /**
-     * Exporta as transações para um ficheiro Excel.
-     */
-    public function export(Request $request)
-    {
-        $fileName = 'transactions-' . now()->format('Y-m-d-His') . '.xlsx';
-        return Excel::download(new TransactionsExport($request), $fileName);
-    }
+
 
     // =======================================================
     // MÉTODOS PRIVADOS DE AJUDA
@@ -241,6 +246,7 @@ class DashboardController extends Controller
             'today' => 'Today',
             'yesterday' => 'Yesterday',
             '7' => 'Last 7 Days',
+            '15' => 'Last 15 Days',
             '30' => 'Last 30 Days',
             'all' => 'All Time',
             default => 'Filtered Period',
@@ -266,5 +272,46 @@ class DashboardController extends Controller
             'quantity' => $confirmedTransactions->count(),
             'period' => $period
         ];
+    }
+
+
+
+
+    /**
+     * Exporta as transações para um ficheiro Excel.
+     */
+    // No seu DashboardController.php
+
+    public function export(Request $request)
+    {
+        // 1. Pega os dados necessários para o relatório
+        $filters = $request->all();
+        $accountId = session('selected_account_id');
+        $userId = Auth::id();
+
+        if (!$accountId) {
+            return back()->with('error', 'Por favor, selecione uma conta antes de exportar.');
+        }
+
+        // 2. Define o nome e o caminho do futuro ficheiro
+        $fileName = 'transactions-' . now()->format('Y-m-d_His') . '.xlsx';
+        $filePath = 'exports/' . $fileName;
+
+        // 3. ✅ Cria um registo na nova tabela 'reports'
+        // Isto dá ao utilizador um feedback imediato de que o seu pedido foi recebido.
+        $report = Report::create([
+            'user_id' => $userId,
+            'account_id' => $accountId,
+            'file_name' => $fileName,
+            'file_path' => $filePath,
+            'status' => 'pending', // O status inicial é "pendente"
+        ]);
+
+        // 4. ✅ Despacha o trabalho para a fila, passando o registo do relatório
+        (new TransactionsExport($filters, $accountId, $report))->queue($filePath);
+
+        // 5. Retorna uma resposta imediata para o utilizador
+        $msg = "Your report is being generated! You can download it by accessing the menu on the side.";
+        return back()->with('success', $msg);
     }
 }

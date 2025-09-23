@@ -21,6 +21,14 @@
 
 @section('content')
 
+@if (session('success'))
+<div class="alert alert-success alert-dismissible" role="alert">
+    <h6 class="alert-heading d-flex align-items-center mb-1"><i class="bx bx-check-circle me-2"></i>Sucesso!</h6>
+    <span>{{ session('success') }}</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
 {{-- PAINEL DE SELEÇÃO DE CONTA (Funcionalidade mantida) --}}
 @if(Auth::user()->level === 'admin' || Auth::user()->level === 'partner')
 <div class="card mb-4">
@@ -340,10 +348,10 @@
                         <div class="input-group input-group-sm">
                             <span class="input-group-text"><i class="bx bx-calendar"></i></span>
                             <select class="form-select" name="date_filter" id="date_filter_select">
-                                <option value="all" {{ request('date_filter', 'all') == 'all' ? 'selected' : '' }}>All Time</option>
                                 <option value="7" {{ request('date_filter') == '7' ? 'selected' : '' }}>Last 7 days</option>
                                 <option value="15" {{ request('date_filter') == '15' ? 'selected' : '' }}>Last 15 days</option>
                                 <option value="30" {{ request('date_filter') == '30' ? 'selected' : '' }}>Last 30 days</option>
+                                <option value="all" {{ request('date_filter') == 'all' ? 'selected' : '' }}>All Time</option>
                                 <option value="custom" {{ request('date_filter') == 'custom' ? 'selected' : '' }}>Custom Range</option>
                                 {{-- Outros períodos --}}
                             </select>

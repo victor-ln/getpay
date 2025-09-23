@@ -144,7 +144,11 @@ class WebhookController extends Controller
 
 
 
-        $acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
+        //$acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
+        $bank = Bank::find($payment->provider_id);
+
+        // 2. Chama o novo método para obter o serviço correto
+        $acquirerService = $this->acquirerResolver->resolveByBank($bank);
         $token = $acquirerService->getToken();
 
         $transactionVerified = $acquirerService->verifyCharge($payment->provider_transaction_id, $token);

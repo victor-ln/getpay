@@ -115,4 +115,9 @@ class User extends Authenticatable
             ->withTimestamps()
             ->latest('user_fees.created_at');
     }
+
+    public function reports()
+    {
+        return $this->hasMany(Report::class);
+    }
 }

@@ -32,6 +32,7 @@ use App\Models\AccountPixKey;
 use App\Models\Balance;
 use App\Http\Controllers\Admin\TakeController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\ReportController as DownloadReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -81,6 +82,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/partner-payout-methods', [PartnerPayoutMethodController::class, 'store'])->name('partner-payout-methods.store');
     Route::delete('/partner-payout-methods/{payoutMethod}', [PartnerPayoutMethodController::class, 'destroy'])->name('partner-payout-methods.destroy');
     Route::put('/partner-payout-methods/{payoutMethod}/set-default', [PartnerPayoutMethodController::class, 'setDefault'])->name('partner-payout-methods.setDefault');
+    Route::get('/download', [DownloadReportController::class, 'index'])->name('download.index');
+    Route::get('/download/{report}/download', [DownloadReportController::class, 'download'])->name('reports.download');
 });
 
 
