@@ -145,7 +145,11 @@ class XdpagWebhookController extends Controller
 
 
 
-        $acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
+        //$acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
+        $bank = Bank::find($payment->provider_id);
+
+        // 2. Chama o novo método para obter o serviço correto
+        $acquirerService = $this->acquirerResolver->resolveByBank($bank);
         $token = $acquirerService->getToken();
 
         $transactionVerified = $acquirerService->verifyCharge($payment->provider_transaction_id, $token);
@@ -232,7 +236,11 @@ class XdpagWebhookController extends Controller
         $user = \App\Models\User::find($payment->user_id);
         $account = $user->accounts()->first();
 
-        $acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
+        //$acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
+        $bank = Bank::find($payment->provider_id);
+
+        // 2. Chama o novo método para obter o serviço correto
+        $acquirerService = $this->acquirerResolver->resolveByBank($bank);
         $token = $acquirerService->getToken();
         $transactionVerified = $acquirerService->verifyChargePayOut($payment->provider_transaction_id, $token);
 
