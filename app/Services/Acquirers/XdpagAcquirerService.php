@@ -35,7 +35,7 @@ class XdpagAcquirerService implements AcquirerInterface
                 'Content-Type' => 'application/json',
             ])
                 ->withOptions([
-                    //'verify' => false
+                    // 'verify' => false
                 ])
 
 
@@ -158,7 +158,6 @@ class XdpagAcquirerService implements AcquirerInterface
                     'pixKey' => $data['pixKey'],
                     'pixKeyType' => $data['pixKeyType'],
                     'externalId' => $data['externalId'],
-                    'validate_document' => false
                 ]);
 
 

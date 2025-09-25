@@ -215,9 +215,8 @@ class UserController extends Controller
             $request['level'] = 'client';
         }
 
-        if (!$request->status) {
-            $request['status'] = 1;
-        }
+
+
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $id,
@@ -226,6 +225,8 @@ class UserController extends Controller
             'document' => 'nullable|string|min:11|max:14',
             'level' => 'required|in:admin,client,partner',
         ]);
+
+
 
         $user = User::find($id);
         $user->name = $validatedData['name'];

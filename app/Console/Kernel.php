@@ -13,9 +13,15 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
-        $schedule->job(new \App\Jobs\UpdateDailyBalances)->dailyAt('01:00');
-        $schedule->job(new \App\Jobs\UpdateWeeklySummaries)->weeklyOn(1, '02:00'); // Segunda
-        $schedule->job(new \App\Jobs\UpdateMonthlySummaries)->monthlyOn(1, '03:00'); // Dia 1 do mês
+        // $schedule->job(new \App\Jobs\UpdateDailyBalances)->dailyAt('01:00');
+        // $schedule->job(new \App\Jobs\UpdateWeeklySummaries)->weeklyOn(1, '02:00'); // Segunda
+        // $schedule->job(new \App\Jobs\UpdateMonthlySummaries)->monthlyOn(1, '03:00'); // Dia 1 do mês
+
+        //Executa a retirada de lucro para o Banco ID 3 a cada 10 minutos.
+        // $schedule->command('takes:execute-for-bank 3')->everyTenMinutes();
+
+        // $schedule->command('schedule:dispatch-takes')->everyMinute();
+        // $schedule->command('takes:dispatch-scheduled')->everyMinute();
     }
 
     /**

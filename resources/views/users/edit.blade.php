@@ -114,7 +114,12 @@
                             <div class="col-md-3">
                                 {!! Form::label('status', 'Status', ['class' => 'form-label']) !!}
                                 {!! Form::select('status', ['0' => 'Inactive', '1' => 'Active'], $user->status ?? 1, ['class' => 'form-select' . ($errors->has('status') ? ' is-invalid' : ''), 'disabled' => Auth::user()->level !== 'admin']) !!}
-                                {{-- ✅ Bloco para exibir o erro de validação --}}
+
+                                {{-- Se não for admin, adiciona campo hidden para enviar o valor --}}
+                                @if(Auth::user()->level !== 'admin')
+                                {!! Form::hidden('status', $user->status ?? 1) !!}
+                                @endif
+
                                 @error('status')
                                 <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror

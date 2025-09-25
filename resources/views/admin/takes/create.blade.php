@@ -26,9 +26,10 @@
             <thead>
                 <tr>
                     <th>Account</th>
-                    <th class="text-end">Total IN</th>
-                    <th class="text-end">Total OUT</th>
-                    <th class="text-end">Net Profit</th>
+                    <th class="text-end">Total IN (Volume)</th>
+                    <th class="text-end">Total Fee</th>
+                    <th class="text-end">Total Cost</th>
+                    <th class="text-end">Total Profit</th>
                 </tr>
             </thead>
             <tbody>
@@ -36,8 +37,9 @@
                 <tr>
                     <td>{{ $account->account_name }}</td>
                     <td class="text-end">R$ {{ number_format($account->total_in, 2, ',', '.') }}</td>
-                    <td class="text-end">R$ {{ number_format($account->total_out, 2, ',', '.') }}</td>
-                    <td class="text-end">R$ {{ number_format($account->total_profit, 2, ',', '.') }}</td>
+                    <td class="text-end">R$ {{ number_format($account->total_fee, 2, ',', '.') }}</td>
+                    <td class="text-end text-danger">R$ {{ number_format($account->total_cost, 2, ',', '.') }}</td>
+                    <td class="text-end text-danger">R$ {{ number_format(($account->total_fee - $account->total_cost), 2, ',', '.') }}</td>
                 </tr>
                 @empty
                 <tr>

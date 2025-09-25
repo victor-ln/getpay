@@ -78,4 +78,12 @@ class Payment extends Model
         // para fazer a ligação com a tabela 'accounts'.
         return $this->belongsTo(Account::class, 'account_id');
     }
+
+    public function bank()
+    {
+        // Esta linha assume que a sua coluna de chave estrangeira
+        // na tabela 'payments' se chama 'acquirer_id'.
+        // Se o nome for diferente (ex: 'bank_id' ou 'provider_id'), ajuste aqui.
+        return $this->belongsTo(Bank::class, 'provider_id');
+    }
 }

@@ -496,7 +496,7 @@
                             {{-- Badge com ícone --}}
                             @php
                             $statusConfig = [
-                            'paid' => ['class' => 'bg-success', 'icon' => 'bx-check-circle', 'text' => 'Paid'],
+                            'paid' => ['class' => 'bg-success view-receipt-btn', 'icon' => 'bx-check-circle', 'text' => 'Paid'],
                             'pending' => ['class' => 'bg-warning', 'icon' => 'bx-time-five', 'text' => 'Pending'],
                             'processing' => ['class' => 'bg-warning', 'icon' => 'bx-time-five', 'text' => 'Pending'],
                             'cancelled' => ['class' => 'bg-danger', 'icon' => 'bx-x-circle', 'text' => 'Cancelled'],
@@ -505,7 +505,9 @@
                             $config = $statusConfig[$transaction->status] ?? ['class' => 'bg-secondary', 'icon' => 'bx-help-circle', 'text' => Str::ucfirst($transaction->status)];
                             @endphp
 
-                            <span class="badge {{ $config['class'] }} me-1 d-flex align-items-center gap-1" style="width: fit-content;">
+                            <span class="badge {{ $config['class'] }} me-1 d-flex align-items-center gap-1 "
+                                style="width: fit-content; cursor: pointer;"
+                                data-payment-id="{{ $transaction->id  }}">
                                 <i class='bx {{ $config['icon'] }}'></i>
                                 {{ $config['text'] }}
                             </span>

@@ -44,13 +44,6 @@
             "access": ["admin", "partner"]
         },
         {
-            "url": "/reports",
-            "name": "Reports",
-            "icon": "menu-icon tf-icons bx bx-bar-chart",
-            "slug": "reports.index",
-            "access": ["admin"]
-        },
-        {
             "url": "/accounts",
             "name": "Accounts",
             "icon": "menu-icon tf-icons bx bx-group",
@@ -65,11 +58,25 @@
             "access": ["admin"]
         },
         {
+            "url": "/admin/payout-destinations",
+            "name": "Pix Key Destinations",
+            "icon": "menu-icon tf-icons bx bx-key",
+            "slug": "pix-key",
+            "access": ["admin"]
+        },
+        {
             "url": "/download",
             "name": "Download Report",
             "icon": "menu-icon tf-icons bx bx-download",
             "slug": "downloads",
             "access": ["admin", "client"]
+        },
+        {
+            "url": "/admin/scheduled-takes",
+            "name": "Scheduled Takes",
+            "icon": "menu-icon tf-icons bx bx-bot",
+            "slug": "scheduled-takes",
+            "access": ["admin"]
         }
     ]
 }

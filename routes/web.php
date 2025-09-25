@@ -32,6 +32,7 @@ use App\Models\AccountPixKey;
 use App\Models\Balance;
 use App\Http\Controllers\Admin\TakeController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ScheduledTakeController;
 use App\Http\Controllers\ReportController as DownloadReportController;
 
 /*
@@ -113,6 +114,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{take}', [TakeController::class, 'show'])->name('show');
     });
     Route::resource('admin/payout-destinations', PayoutDestinationController::class)->names('admin.payout-destinations');
+    Route::post('admin/payout-destinations/{payout_destination}/set-default-take', [PayoutDestinationController::class, 'setDefaultTake'])->name('admin.payout-destinations.setDefaultTake');
+    Route::resource('admin/scheduled-takes', ScheduledTakeController::class)
+        ->names('admin.scheduled-takes');
+    Route::patch('admin/scheduled-takes/{scheduled_take}/toggle', [ScheduledTakeController::class, 'toggle'])
+        ->name('admin.scheduled-takes.toggle');
 
     // Rota para associar um sócio a uma conta
     Route::post('/accounts/{account}/partners', [AccountController::class, 'attachPartner'])->name('accounts.partners.attach');

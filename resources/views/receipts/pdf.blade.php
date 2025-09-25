@@ -173,11 +173,11 @@
                     <span>Documento</span>
                     <strong id="pdf-receiver-document">
                         @php
-                        $doc = preg_replace('/\D/', '', $payment->user->document);
+                        $doc = preg_replace('/\D/', '', $payment->document);
                         if (strlen($doc) == 11) { // Verifica se é CPF
                         $masked = '***.' . substr($doc, 3, 3) . '.' . substr($doc, 6, 3) . '-**';
                         } else {
-                        $masked = $payment->user->document; // Se não for CPF, mostra original
+                        $masked = $payment->document; // Se não for CPF, mostra original
                         }
                         @endphp
                         {{ $masked }}

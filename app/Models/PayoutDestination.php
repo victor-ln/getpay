@@ -21,5 +21,6 @@ class PayoutDestination extends Model
         'owner_name',
         'owner_document',
         'is_active',
+        'is_default_for_takeouts',
     ];
 }

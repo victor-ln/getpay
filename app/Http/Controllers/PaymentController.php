@@ -259,13 +259,18 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $document = $payment->user->masked_document;
+        // $document = $payment->user->document->getMaskedDocumentAttribute;
+        $document = $payment->document;
+
+        $providerData = json_decode($payment->provider_response_data, true);
+        $receiverDocument = $providerData['data']['metadata']['receiverDocument'] ?? null;
+
 
         // Retorna os dados formatados. No futuro, podemos usar um API Resource aqui.
         return response()->json([
             'success' => true,
             'receipt' => [
-                'transaction_id' => $payment->id,
+                'transaction_id' => $payment->provider_transaction_id,
                 'end_to_end_id' => $payment->end_to_end_id,
                 'amount' => number_format($payment->amount, 2, ',', '.'),
                 'status' => ucfirst($payment->status),
@@ -273,16 +278,35 @@ class PaymentController extends Controller
                 'date' => $payment->created_at->format('d/m/Y'),
                 'time' => $payment->created_at->format('H:i:s'),
                 'description' => $payment->description,
-                'payer' => [ // Dados de quem pagou (neste caso, sua plataforma)
-                    'name' => 'GetPay (via ' . $payment->provider->name . ')',
+                'payer' => [
+                    'name' => $providerData['data']['metadata']['payerName'] ?? 'GetPay ',
                 ],
                 'receiver' => [ // Dados de quem recebeu
-                    'name' => $payment->user->name,
-                    'document' => $document, // Lembre-se de mascarar isso se necessário
+                    'name' => $providerData['data']['metadata']['receiverName'],
+                    'document' => $this->maskDocument($receiverDocument), // Lembre-se de mascarar isso se necessário
                 ],
             ]
         ]);
     }
+
+    public function maskDocument($document)
+    {
+        if (!$document) return '***';
+
+        // Remove caracteres não numéricos
+        $doc = preg_replace('/\D/', '', $document);
+
+        if (strlen($doc) == 11) { // CPF
+            return '***.' . substr($doc, 3, 3) . '.' . substr($doc, 6, 3) . '-**';
+        } elseif (strlen($doc) == 14) { // CNPJ
+            return '**.' . substr($doc, 2, 3) . '.' . substr($doc, 5, 3) . '/****-**';
+        }
+
+        // Se não for CPF nem CNPJ, retorna mascarado genérico
+        return '***' . substr($doc, 3, -3) . '***';
+    }
+
+
 
     public function downloadReceipt(Payment $payment)
     {

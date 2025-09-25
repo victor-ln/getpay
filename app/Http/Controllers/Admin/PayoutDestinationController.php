@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PayoutDestination; // Model que criamos
+use App\Models\PayoutDestination;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PayoutDestinationController extends Controller
 {
@@ -47,8 +48,25 @@ class PayoutDestinationController extends Controller
         PayoutDestination::create($validatedData);
 
         return redirect()->route('admin.payout-destinations.index')
-                     ->with('success', 'PIX Key destination created successfully!'); 
+            ->with('success', 'PIX Key destination created successfully!');
     }
 
-    
+    public function setDefaultTake(PayoutDestination $payout_destination)
+    {
+        try {
+            // Usamos uma transação para garantir que a operação seja "tudo ou nada"
+            DB::transaction(function () use ($payout_destination) {
+                // 1. Primeiro, remove a bandeira de "padrão" de todas as outras chaves
+                PayoutDestination::where('id', '!=', $payout_destination->id)
+                    ->update(['is_default_for_takeouts' => false]);
+
+                // 2. Depois, define a bandeira como 'true' apenas para a chave selecionada
+                $payout_destination->update(['is_default_for_takeouts' => true]);
+            });
+
+            return back()->with('success', 'The default pix key for "Takes" has been updated successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'An error occurred while trying to update the default pix key.');
+        }
+    }
 }

@@ -39,7 +39,7 @@
                 <h6 class="text-muted small-caps">PARA (BENEFICIÁRIO)</h6>
                 <ul class="list-unstyled mb-0">
                     <li class="d-flex justify-content-between">
-                        <span>Nome</span>
+                        <span>Nome </span>
                         <strong id="receipt-receiver-name">--</strong>
                     </li>
                     <li class="d-flex justify-content-between">
@@ -58,7 +58,7 @@
                 <h6 class="text-muted small-caps">DE (PAGADOR)</h6>
                 <ul class="list-unstyled mb-0">
                     <li class="d-flex justify-content-between">
-                        <span>Nome</span>
+                        <span>Nome </span>
                         <strong id="receipt-payer-name">--</strong>
                     </li>
                     <li class="d-flex justify-content-between">
@@ -113,5 +113,10 @@
 
     .receipt-section ul li {
         padding: 0.25rem 0;
+    }
+
+    #receipt-payer-name,
+    #receipt-transaction-id {
+        text-align: right;
     }
 </style>

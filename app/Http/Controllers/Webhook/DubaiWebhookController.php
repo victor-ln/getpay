@@ -219,18 +219,32 @@ class DubaiWebhookController extends Controller
             $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'IN', $payment->amount);
 
 
-            $payment->status = 'paid';
-            $payment->fee = $fee;
-            $payment->cost = $cost;
-            $payment->end_to_end_id = $payload['bankData']['endToEndId'] ?? '---';
-            $payment->provider_response_data = $payload;
-            $payment->name = $payload['bankData']['name'] ?? '---';
-            $payment->document = $payload['bankData']['documentNumber'] ?? '---';
-            $payment->platform_profit = (float) ($fee - $cost);
-            $payment->save();
+            switch ($payload['status']) {
 
-            $balance->available_balance += $netAmount;
-            $balance->save();
+                case 'COMPLETED':
+                    $payment->status = 'paid';
+                    $payment->fee = $fee;
+                    $payment->cost = $cost;
+                    $payment->end_to_end_id = $payload['bankData']['endToEndId'] ?? '---';
+                    $payment->provider_response_data = $payload;
+                    $payment->name = $payload['bankData']['name'] ?? '---';
+                    $payment->document = $payload['bankData']['documentNumber'] ?? '---';
+                    $payment->platform_profit = (float) ($fee - $cost);
+                    $payment->save();
+
+                    $balance->available_balance += $netAmount;
+                    $balance->save();
+
+                    break;
+
+                case 'CANCELLED':
+                    $payment->status = 'cancelled';
+                    $payment->save();
+                    break;
+            }
+
+
+
 
 
 
@@ -292,7 +306,7 @@ class DubaiWebhookController extends Controller
             switch ($payload['status']) {
 
                 case 'COMPLETED':
-                    // LÓGICA EXISTENTE PARA SAQUE BEM-SUCEDIDO
+                    // LÓGICA EXISTENTE PARA SAQUE BEM-SUCEDIDO 
 
                     $payment->status = 'paid';
                     $payment->name = $payload['bankData']['name'] ?? '---';
