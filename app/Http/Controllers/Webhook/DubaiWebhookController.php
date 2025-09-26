@@ -217,7 +217,7 @@ class DubaiWebhookController extends Controller
             $netAmount = $payment->amount - $fee;
 
             $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'IN', $payment->amount);
-
+            $payment->provider_response_data = $payload;
 
             switch ($payload['status']) {
 
