@@ -96,7 +96,7 @@ class XdpagAcquirerService implements AcquirerInterface
                 ])
                 ->post($this->baseUrl . "order/pay-in", [
                     'amount' => (float) $data['amount'],
-                    'webhook' => 'https://hub.getpay.one/api/webhook/xdpag',
+                    'webhook' => 'https://app-getpay-prod-3.azurewebsites.net/api/webhook/xdpag/api/webhook/xdpag',
                     'externalId' => $data['externalId'],
                     'description' => $data['description'] ?? 'Description in pix transaction',
                     'additional_data' => [
@@ -153,7 +153,7 @@ class XdpagAcquirerService implements AcquirerInterface
 
                 ->post($this->baseUrl . "order/pay-out", [
                     'amount' => (float) $data['amount'],
-                    'webhook' => 'https://hub.getpay.one/api/webhook/xdpag',
+                    'webhook' => 'https://app-getpay-prod-3.azurewebsites.net/api/webhook/xdpag',
                     'document' => $data['documentNumber'],
                     'pixKey' => $data['pixKey'],
                     'pixKeyType' => $data['pixKeyType'],
