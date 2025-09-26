@@ -91,7 +91,7 @@ class TruztAcquirerService implements AcquirerInterface
                     'amount' => (float) $data['amount'],
                     'username' => $this->username,
                     'password' => $this->password,
-                    'webhook' => 'https://hub.getpay.one/api/webhook/handler'
+                    'webhook' => 'https://app-getpay-prod-3.azurewebsites.net/api/webhook/handler'
 
                 ]);
 
@@ -142,7 +142,7 @@ class TruztAcquirerService implements AcquirerInterface
                     'username' => $this->username,
                     'password' => $this->password,
                     'amount' => (float) $data['amount'],
-                    'webhook' => 'https://hub.getpay.one/api/webhook/handler',
+                    'webhook' => 'https://app-getpay-prod-3.azurewebsites.net/api/webhook/handler',
                     'document' => $data['documentNumber'],
                     'pixKey' => $data['pixKey'],
                     'pixKeyType' => $data['pixKeyType'],
