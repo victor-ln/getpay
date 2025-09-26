@@ -55,15 +55,7 @@ class DashboardController extends Controller
         $kpiIn = $this->calculateKpis($baseKpiQuery, 'IN');
         $kpiOut = $this->calculateKpis($baseKpiQuery, 'OUT');
 
-        if ($selectedAccount->id == 14) {
 
-            $kpiIn['paid_volume'] -= 3095;
-        }
-
-        if ($selectedAccount->id == 13) {
-
-            $kpiIn['paid_volume'] -= 1945;
-        }
 
         $profitSummary = $this->calculateProfitSummary($loggedInUser, $kpiIn, $kpiOut, $baseKpiQuery);
         $pixKeys = $selectedAccount->pixKeys()->get();
