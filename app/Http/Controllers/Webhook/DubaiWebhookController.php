@@ -239,6 +239,7 @@ class DubaiWebhookController extends Controller
 
                 case 'CANCEL':
                     $payment->status = 'cancelled';
+                    $payment->provider_response_data = $payload;
                     $payment->save();
                     break;
             }
