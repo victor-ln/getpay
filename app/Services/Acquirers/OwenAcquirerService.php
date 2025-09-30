@@ -40,7 +40,7 @@ class OwenAcquirerService implements AcquirerInterface
                 'Authorization' => 'Basic ' . $this->credentials,
             ])
                 ->withOptions([
-                    //  'verify' => false
+                    'verify' => false
                 ])
                 ->get($this->baseUrl . 'ping');
 
@@ -62,8 +62,7 @@ class OwenAcquirerService implements AcquirerInterface
 
             return null;
         } catch (\Exception $e) {
-            $user = Auth::user();
-            Log::error('Owen authentication exception' . $user->id, [
+            Log::error('Owen authentication exception', [
                 'message' => $e->getMessage()
             ]);
 
@@ -136,7 +135,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                //        'verify' => false
+                'verify' => false
             ])
                 ->withHeaders([
                     'Accept' => 'application/json',

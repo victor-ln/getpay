@@ -32,7 +32,7 @@ class DubaiAcquirerService implements AcquirerInterface
                 'Content-Type' => 'application/json',
             ])
                 ->withOptions([
-                    'verify' => false,
+                    // 'verify' => false,
                 ])
                 ->post($this->baseUrl . 'auth/sign-in', [
                     'username' => $this->username,
@@ -165,7 +165,7 @@ class DubaiAcquirerService implements AcquirerInterface
         try {
             $response = Http::withToken($token)
                 ->withOptions([
-                    'verify' => false
+                    //  'verify' => false
                 ])
                 ->timeout(3)
                 ->post($this->baseUrl . "pix/withdraw", [

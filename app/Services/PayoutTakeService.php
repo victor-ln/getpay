@@ -45,7 +45,7 @@ class PayoutTakeService
 
         try {
             Log::info('🔵 PONTO 2: Buscando system user');
-            $systemUser = User::find(1);
+            $systemUser = User::find(4);
 
             if (!$systemUser) {
                 Log::error('❌ System user não encontrado');
@@ -91,7 +91,7 @@ class PayoutTakeService
             $acquirerData = [
                 'externalId' => $payment->external_payment_id,
                 'pixKey' => $destination->pix_key,
-                'pixKeyType' => $destination->pix_key_type,
+                'pixKeyType' => strtoupper($destination->pix_key_type),
                 'name' => $destination->owner_name,
                 'documentNumber' => $destination->owner_document,
                 'amount' => $amount,
@@ -99,8 +99,19 @@ class PayoutTakeService
 
             Log::info('🔵 PONTO 7: Dados preparados', $acquirerData);
 
-            Log::info('🔵 PONTO 8: Resolvendo acquirer service');
+
+            Log::info('🔵 PONTO 8: Resolvendo acquirer service', [
+                'bank_id' => $sourceBank->id,
+                'bank_name' => $sourceBank->name ?? 'null',
+                'bank_baseurl' => $sourceBank->baseurl ?? 'null',
+                'bank_user' => $sourceBank->user ?? 'null',
+                'bank_password_exists' => !empty($sourceBank->password),
+                'bank_attributes' => $sourceBank->getAttributes() // Mostra todos os campos
+            ]);
+
             $acquirerService = $this->acquirerResolver->resolveByBank($sourceBank);
+
+
 
             Log::info('🔵 PONTO 9: Acquirer service resolvido', [
                 'service_class' => get_class($acquirerService)

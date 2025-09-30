@@ -35,7 +35,7 @@ class XdpagAcquirerService implements AcquirerInterface
                 'Content-Type' => 'application/json',
             ])
                 ->withOptions([
-                    //  'verify' => false
+                    'verify' => false
                 ])
 
 
@@ -67,8 +67,8 @@ class XdpagAcquirerService implements AcquirerInterface
 
             return null;
         } catch (\Exception $e) {
-            $user = Auth::user();
-            Log::error('Xdpag authentication exception' . $user->id, [
+
+            Log::error('Xdpag authentication exception', [
                 'message' => $e->getMessage()
             ]);
 
@@ -146,7 +146,7 @@ class XdpagAcquirerService implements AcquirerInterface
         try {
             $response = Http::withToken($token)
                 ->withOptions([
-                    // 'verify' => false
+                    'verify' => false
                 ])
 
 
