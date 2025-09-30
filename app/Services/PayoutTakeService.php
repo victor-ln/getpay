@@ -84,7 +84,7 @@ class PayoutTakeService
             $acquirerData = [
                 'externalId' => $payment->external_payment_id,
                 'pixKey' => $destination->pix_key,
-                'pixKeyType' => $destination->pix_key_type,
+                'pixKeyType' => strtoupper($destination->pix_key_type),
                 'name' => $destination->owner_name,
                 'documentNumber' => $destination->owner_document,
                 'amount' => $amount,
@@ -101,7 +101,7 @@ class PayoutTakeService
 
 
 
-            $statusCode = $response['statusCode'] ?? 500;
+            $statusCode = $response['statusCode'];
 
 
 
