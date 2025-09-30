@@ -37,10 +37,14 @@ class PayoutTakeService
      */
     public function execute(Bank $sourceBank, PayoutDestination $destination, float $amount): array
     {
-
+        Log::info('🔵 PONTO 1: Início do execute', [
+            'source_bank_id' => $sourceBank->id,
+            'destination_id' => $destination->id,
+            'amount' => $amount
+        ]);
 
         try {
-
+            Log::info('🔵 PONTO 2: Buscando system user');
             $systemUser = User::find(1);
 
             if (!$systemUser) {
@@ -48,7 +52,7 @@ class PayoutTakeService
                 throw new \Exception('System user not found');
             }
 
-
+            Log::info('🔵 PONTO 3: Buscando platform account');
             $platformAccount = $systemUser->accounts()->first();
 
             if (!$platformAccount) {
@@ -56,14 +60,14 @@ class PayoutTakeService
                 throw new \Exception('Platform account not found');
             }
 
-
+            Log::info('🔵 PONTO 4: Chamando logAction');
             $this->logAction($systemUser, self::ACTION_TAKE_PAYOUT_INITIATED, [
                 'source_bank_id' => $sourceBank->id,
                 'destination_id' => $destination->id,
                 'amount' => $amount
             ]);
 
-
+            Log::info('🔵 PONTO 5: Criando Payment');
             $payment = Payment::create([
                 'user_id' => $systemUser->id,
                 'account_id' => $platformAccount->id,
@@ -79,31 +83,50 @@ class PayoutTakeService
                 'document' => $destination->owner_document,
             ]);
 
-
+            Log::info('🔵 PONTO 6: Payment criado', [
+                'payment_id' => $payment->id,
+                'external_payment_id' => $payment->external_payment_id
+            ]);
 
             $acquirerData = [
                 'externalId' => $payment->external_payment_id,
                 'pixKey' => $destination->pix_key,
-                'pixKeyType' => strtoupper($destination->pix_key_type),
+                'pixKeyType' => $destination->pix_key_type,
                 'name' => $destination->owner_name,
                 'documentNumber' => $destination->owner_document,
                 'amount' => $amount,
             ];
 
+            Log::info('🔵 PONTO 7: Dados preparados', $acquirerData);
 
+            Log::info('🔵 PONTO 8: Resolvendo acquirer service');
             $acquirerService = $this->acquirerResolver->resolveByBank($sourceBank);
 
+            Log::info('🔵 PONTO 9: Acquirer service resolvido', [
+                'service_class' => get_class($acquirerService)
+            ]);
 
+            Log::info('🔵 PONTO 10: Obtendo token');
             $token = $acquirerService->getToken();
 
+            Log::info('🔵 PONTO 11: Token obtido', [
+                'token_exists' => !empty($token),
+                'token_length' => strlen($token ?? '')
+            ]);
 
+            Log::info('🔵 PONTO 12: Chamando createChargeWithdraw');
             $response = $acquirerService->createChargeWithdraw($acquirerData, $token);
 
+            Log::info('🔵 PONTO 13: Response recebida', [
+                'response_type' => gettype($response),
+                'response' => $response
+            ]);
 
+            $statusCode = $response['statusCode'] ?? 500;
 
-            $statusCode = $response['statusCode'];
-
-
+            Log::info('🔵 PONTO 14: Status code extraído', [
+                'status_code' => $statusCode
+            ]);
 
             if ($statusCode >= 400) {
                 Log::error('❌ Status code indica erro', [
@@ -113,11 +136,11 @@ class PayoutTakeService
                 throw new \Exception('A adquirente falhou em processar o pedido: ' . json_encode($response));
             }
 
-
+            Log::info('🔵 PONTO 15: Atualizando payment');
             $providerTransactionId = $response['data']['uuid'] ?? null;
             $payment->update(['provider_transaction_id' => $providerTransactionId]);
 
-
+            Log::info('🔵 PONTO 16: Payment atualizado com sucesso');
             $this->logAction($systemUser, self::ACTION_TAKE_PAYOUT_SUCCESS, ['payment_id' => $payment->id]);
 
             Log::info('✅ SUCESSO TOTAL');
