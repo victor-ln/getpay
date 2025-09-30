@@ -35,7 +35,7 @@ class XdpagAcquirerService implements AcquirerInterface
                 'Content-Type' => 'application/json',
             ])
                 ->withOptions([
-                    // 'verify' => false
+                    //  'verify' => false
                 ])
 
 
@@ -160,7 +160,10 @@ class XdpagAcquirerService implements AcquirerInterface
                     'externalId' => $data['externalId'],
                 ]);
 
-
+            Log::info('Xdpag create charge response', [
+                'response' => $response->json(),
+                'status' => $response->status()
+            ]);
 
             $data = array(
                 'uuid' => $response->json()['data']['id'],

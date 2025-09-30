@@ -40,7 +40,7 @@ class OwenAcquirerService implements AcquirerInterface
                 'Authorization' => 'Basic ' . $this->credentials,
             ])
                 ->withOptions([
-                    //       'verify' => false
+                    //  'verify' => false
                 ])
                 ->get($this->baseUrl . 'ping');
 
@@ -79,7 +79,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                // 'verify' => false,
+                //  'verify' => false,
                 'allow_redirects' => false // Impede redirecionamentos automáticos
             ])
                 ->withHeaders([
@@ -136,7 +136,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                // 'verify' => false
+                //        'verify' => false
             ])
                 ->withHeaders([
                     'Accept' => 'application/json',
@@ -193,7 +193,7 @@ class OwenAcquirerService implements AcquirerInterface
                 'Authorization' => 'Basic ' . $this->credentials,
             ])
                 ->withOptions([
-                    'verify' => false
+                    //       'verify' => false
                 ])
                 // Usar send() permite controlar o método e o corpo separadamente
                 ->send('GET', $this->baseUrl . 'pix/in/dynamic-qrcode/' . $payInId, []);

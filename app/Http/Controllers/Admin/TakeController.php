@@ -92,6 +92,7 @@ class TakeController extends Controller
         $totalProfit = $payoutsByAcquirer->sum('profit');
         $destinations = \App\Models\PayoutDestination::where('is_active', true)->get();
 
+
         return view('admin.takes.create', [
             'totalProfit'        => $totalProfit,
             'startDate'          => $startDate, // Agora, esta variável é garantidamente um objeto Carbon
