@@ -263,7 +263,7 @@ class PaymentController extends Controller
         $document = $payment->document;
 
         $providerData = json_decode($payment->provider_response_data, true);
-        $receiverDocument = $providerData['data']['metadata']['receiverDocument'] ?? null;
+        $receiverDocument = $providerData['data']['metadata']['receiverDocument'] ?? $providerData['object']['receiver']['cpfCnpj'] ?? null;
 
 
         // Retorna os dados formatados. No futuro, podemos usar um API Resource aqui.
@@ -279,10 +279,10 @@ class PaymentController extends Controller
                 'time' => $payment->created_at->format('H:i:s'),
                 'description' => $payment->description,
                 'payer' => [
-                    'name' => $providerData['data']['metadata']['payerName'] ?? 'GetPay ',
+                    'name' => $providerData['data']['metadata']['payerName'] ?? $providerData['object']['payer']['name'] ?? 'GetPay ',
                 ],
                 'receiver' => [ // Dados de quem recebeu
-                    'name' => $providerData['data']['metadata']['receiverName'],
+                    'name' => $providerData['data']['metadata']['receiverName'] ?? $payment->name,
                     'document' => $this->maskDocument($receiverDocument), // Lembre-se de mascarar isso se necessário
                 ],
             ]

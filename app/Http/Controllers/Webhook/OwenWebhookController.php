@@ -16,12 +16,12 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Auth\AuthenticationException;
 
-class DubaiWebhookController extends Controller
+class OwenWebhookController extends Controller
 {
-
     use ToastTrait;
+
+
 
     protected $feeService;
     protected $platformTransactionService;
@@ -40,15 +40,9 @@ class DubaiWebhookController extends Controller
         $this->feeCalculatorService = $feeCalculatorService;
     }
 
-
-    /**
-     * Handle incoming webhooks from the Dubai acquirer.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function handle(Request $request)
+    public function handleWebhook(Request $request)
     {
+        // 1. Decodifica o payload e lida com JSON inválido
         $payload = json_decode($request->getContent(), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             Log::error('Webhook com JSON inválido recebido.');
@@ -67,85 +61,41 @@ class DubaiWebhookController extends Controller
         ]);
 
 
-        // if (isset($payload['data']['status']) && $payload['data']['status'] == 'FAILED') {
-
-        //     $payment = Payment::where('external_payment_id', $payload['data']['externalId'])->first();
-
-        //     if (empty($payment)) {
-        //         return response()->json(['message' => 'Pay-out não encontrado.'], 200);
-        //     }
-
-        //     if ($payment->status == 'paid') {
-        //         return response()->json(['message' => 'Pay-out com status pago.'], 200);
-        //     }
-
-
-        //     $balance = Balance::firstOrCreate(
-        //         [
-        //             'account_id'  => $payment->account_id,
-        //             'acquirer_id' => $payment->provider_id,
-        //         ],
-        //         [
-        //             'available_balance' => 0,
-        //             'blocked_balance'   => 0,
-        //         ]
-        //     );
-
-
-
-
-
-        //     $totalBlockedAmount = $payment->amount + $payment->fee;
-
-
-
-        //     $payment->status = 'cancelled';
-        //     $balance->blocked_balance -= $totalBlockedAmount; // Remove do bloqueado
-        //     $balance->available_balance += $totalBlockedAmount; // E devolve para o disponível
-
-        //     Log::info("Pay-out confirmado como 'CANCELED'. Saldo devolvido para disponível.", [
-        //         'payment_id' => $payment->id,
-        //         'amount_returned_to_available' => $totalBlockedAmount
-        //     ]);
-
-        //     $payment->save();
-        //     $balance->save();
-
-
-        //     $this->sendOutgoingWebhook($payment->account_id, $payment,  $payload);
-
-        //     return response()->json(['message' => 'Pay-out confirmado como "CANCELED". Saldo devolvido para disponível, conta: ' . $payment->account_id], 200);
-        // }
-
-        // 3. Validação do Payload
-        $payload = $request->all();
-        if (empty($payload['status'])) {
-            Log::error('Payload de webhook inválido da Dubai: Faltando uuid ou status.', $payload);
-            return response()->json(['error' => 'Invalid payload.'], 400);
+        if (!$this->verifySignature($request->getContent(), $request->header("Authorization"))) {
+            Log::warning('Webhook recebido com assinatura inválida.', ['ip' => $request->ip()]);
+            return response()->json(["error" => "Invalid signature."], 403);
         }
 
 
 
-        // 4. Encontrar a Transação
-        $payment = Payment::where('external_payment_id', $payload['transaction']['externalId'])->first();
 
-
-        if (!$payment) {
-            Log::warning('Webhook recebido para uma transação não encontrada no sistema.', ['uuid' => $payload['uuid']]);
-            // Retornamos 200 OK para que a adquirente não tente reenviar um webhook para uma transação que não conhecemos.
-            return response()->json(['status' => 'ok']);
-        }
-
-        // 5. Verificar se a transação já foi processada para evitar duplicidade
-        if (in_array($payment->status, ['paid', 'cancelled'])) {
-            Log::info('Webhook recebido para transação que já possui um status final.', [
-                'payment_id' => $payment->id,
-                'status_atual' => $payment->status
-            ]);
-            return response()->json(['message' => ' Webhook already processed.'], 200);
-        }
 
         try {
+            // Pega o ID da transação vindo do gateway. Note que no seu payload é só 'id'.
+            $providerTransactionId = $payload['object']['entryId'] ??  $payload['object']['metadata']['idempotencyKey'] ?? null;
+
+
+
+
+            if (!$providerTransactionId) {
+                throw new Exception("Payload do webhook não contém o campo 'id'.");
+            }
+
+            // 3. Encontra o pagamento correspondente no nosso sistema
+            // $payment = Payment::where('provider_transaction_id', $providerTransactionId)->first();
+            $payment = Payment::with('provider')->where('provider_transaction_id', $providerTransactionId)->first();
+
+
+
+
+            if (!$payment) {
+                Log::warning("Webhook recebido para uma transação não encontrada.", ['provider_id' => $providerTransactionId]);
+                return response()->json(["message" => "Transaction not found, but webhook acknowledged."]);
+            }
+
+            // Associa o User ID ao log do webhook que criamos
+            $webhookRequest->user_id = $payment->user_id;
+            $webhookRequest->save();
 
 
             $transactionTypeInOurSystem = $payment->type_transaction;
@@ -165,18 +115,19 @@ class DubaiWebhookController extends Controller
                     break;
             }
 
-            // 7. Retornar Resposta 200 OK
-            return response()->json(['status' => 'received']);
-        } catch (\Exception $e) {
-            Log::critical('Erro CRÍTICO ao processar webhook da Dubai.', [
-                'payment_id' => $payment->id,
-                'error' => $e->getMessage()
-            ]);
-            // Retorna um erro 500, o que pode fazer a adquirente tentar reenviar o webhook.
-            return response()->json(['error' => 'Internal server error.'], 500);
+            // 6. Envia o webhook de saída para o cliente, se necessário
+            //$this->sendOutgoingWebhook($payment->account_id, $payment, $payload);
+
+            return response()->json(["message" => "Webhook processado com sucesso."]);
+        } catch (Exception $e) {
+            Log::error("Erro ao processar webhook: " . $e->getMessage(), ["request_id" => $webhookRequest->id, "exception" => $e]);
+            return response()->json(["error" => "Erro interno ao processar webhook."], 500);
         }
     }
 
+    /**
+     * Lida com a confirmação de um PAY-IN (Depósito).
+     */
     private function handlePayinConfirmation(Payment $payment, array $payload)
     {
 
@@ -188,6 +139,11 @@ class DubaiWebhookController extends Controller
             return;
         }
 
+
+        if ($payload['event'] != 'pix_in:qrcode_paid') {
+            Log::info("Webhook de Pay-in recebido mas com evento inválido.", ['payment_id' => $payment->id]);
+            return;
+        }
 
 
 
@@ -219,16 +175,16 @@ class DubaiWebhookController extends Controller
             $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'IN', $payment->amount);
             $payment->provider_response_data = $payload;
 
-            switch ($payload['status']) {
+            switch ($payload['object']['status']) {
 
-                case 'COMPLETED':
+                case 'succeeded':
                     $payment->status = 'paid';
                     $payment->fee = $fee;
                     $payment->cost = $cost;
-                    $payment->end_to_end_id = $payload['bankData']['endToEndId'] ?? '---';
+                    $payment->end_to_end_id = $payload['object']['endToEndId'] ?? '---';
                     $payment->provider_response_data = $payload;
-                    $payment->name = $payload['bankData']['name'] ?? '---';
-                    $payment->document = $payload['bankData']['documentNumber'] ?? '---';
+                    $payment->name = $payload['object']['payer']['name'] ?? '---';
+                    $payment->document = $payload['object']['payer']['cpfCnpj'] ?? '---';
                     $payment->platform_profit = (float) ($fee - $cost);
 
 
@@ -264,8 +220,9 @@ class DubaiWebhookController extends Controller
     /**
      * Lida com a confirmação de um PAY-OUT (Saque).
      */
-    private function handlePayoutConfirmation(Payment $payment, array $payload)
+    private function handlePayoutConfirmation(Payment $payment, array $webhookData)
     {
+
 
 
 
@@ -278,19 +235,33 @@ class DubaiWebhookController extends Controller
         $user = \App\Models\User::find($payment->user_id);
         $account = $user->accounts()->first();
 
+        //$acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
+        $bank = Bank::find($payment->provider_id);
+
+        // 2. Chama o novo método para obter o serviço correto
+        $acquirerService = $this->acquirerResolver->resolveByBank($bank);
+        $token = $acquirerService->getToken();
+
+
+        $transactionVerified = $acquirerService->verifyChargePayOut($webhookData['object']['endToEndId'], $token);
+
+
+
+        $acquirerStatus = $transactionVerified['data']['status'] ?? null;
+
 
 
         // Verificamos se o status é um dos que sabemos tratar (FINISHED ou CANCELED)
-        if (!in_array($payload['status'], ['AWAITING', 'COMPLETED', 'FAILED'])) {
+        if (!in_array($acquirerStatus, ['succeeded', 'processing', 'failed'])) {
             Log::info("Webhook de Pay-Out recebido com status não tratado pela adquirente.", [
                 'payment_id' => $payment->id,
-                'status_recebido' => $payload['status']
+                'status_recebido' => $acquirerStatus
             ]);
             return;
         }
 
 
-        DB::transaction(function () use ($payment, $payload) {
+        DB::transaction(function () use ($payment, $webhookData, $transactionVerified, $acquirerStatus) {
             $balance = Balance::firstOrCreate(
                 [
                     'account_id'  => $payment->account_id,
@@ -308,16 +279,16 @@ class DubaiWebhookController extends Controller
 
 
             // Usamos um switch para tratar cada status
-            switch ($payload['status']) {
+            switch ($acquirerStatus) {
 
-                case 'COMPLETED':
-                    // LÓGICA EXISTENTE PARA SAQUE BEM-SUCEDIDO 
+                case 'succeeded':
+                    // LÓGICA EXISTENTE PARA SAQUE BEM-SUCEDIDO
 
                     $payment->status = 'paid';
-                    $payment->name = $payload['bankData']['name'] ?? '---';
-                    $payment->document = $payload['bankData']['documentNumber'] ?? '---';
-                    $payment->provider_transaction_id = $payload['transaction']['uuid'] ?? '---';
+                    $payment->name = $webhookData['object']['receiver']['name'] ?? '---';
+                    $payment->document = $webhookData['object']['receiver']['cpfCnpj'] ?? '---';
                     $balance->blocked_balance -= $totalBlockedAmount; // Apenas remove do bloqueado
+
 
                     Log::info("Pay-out confirmado como 'FINISHED'. Saldo bloqueado liberado.", [
                         'payment_id' => $payment->id,
@@ -325,17 +296,8 @@ class DubaiWebhookController extends Controller
                     ]);
                     break;
 
-                case 'AWAITING':
+                case 'failed':
                     // NOVA LÓGICA PARA SAQUE CANCELADO
-
-                    $payment->provider_transaction_id = $payload['transaction']['uuid'] ?? '---';
-
-
-                    break;
-
-                case 'FAILED':
-                    // LÓGICA EXISTENTE PARA SAQUE CANCELADO
-
 
                     $payment->status = 'cancelled';
                     $balance->blocked_balance -= $totalBlockedAmount; // Remove do bloqueado
@@ -345,6 +307,7 @@ class DubaiWebhookController extends Controller
                         'payment_id' => $payment->id,
                         'amount_returned_to_available' => $totalBlockedAmount
                     ]);
+                    break;
             }
 
             $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'OUT', $payment->amount);
@@ -354,8 +317,9 @@ class DubaiWebhookController extends Controller
 
             $payment->fee = $fee;
             $payment->cost = $cost;
-            $payment->end_to_end_id = $payload['bankData']['endtoendId'] ?? '---';
-            $payment->provider_response_data = $payload;
+            $payment->end_to_end_id = $webhookData['object']['endToEndId'] ?? '---';
+            $payment->provider_response_data = $webhookData;
+            $payment->platform_profit = (float) ($fee - $cost);
 
             $payment->save();
             $balance->save();
@@ -368,15 +332,77 @@ class DubaiWebhookController extends Controller
                 'amount_released' => $totalBlockedAmount
             ]);
 
-            if ($payload['status'] === 'COMPLETED') {
+            if ($acquirerStatus === 'FINISHED') {
                 $this->platformTransactionService->creditProfitForTransaction($payment);
             }
             // event(new \App\Events\PaymentConfirmed($payment)); // Futura notificação em tempo real
         });
 
-        $this->sendOutgoingWebhook($payment->account_id, $payment,  $payload);
+        $this->sendOutgoingWebhook($payment->account_id, $payment,  $webhookData);
         return;
     }
+
+    public function resendWebhook(Request $request)
+    {
+
+        $dados = $request->all();
+
+
+
+        $startDate = $dados['start'] ?? ' ';
+        $endDate =   $dados['end'] ?? ' ';
+        $account = $dados['account'] ?? ' ';
+        $type = $dados['type'] ?? ' ';
+        $id = $dados['id'] ?? ' ';
+
+
+
+        // if (!empty($id)) {
+        //     $payments = Payment::where('provider_transaction_id', $id)
+        //         ->get();
+
+        //     $account = $payments->first()->account_id;
+        // } else {
+        //     $payments = Payment::where('account_id', $account)
+        //         ->where('status', 'paid')
+        //         ->where('type_transaction', $type)
+        //         ->whereBetween('created_at', [$startDate, $endDate])
+        //         ->orderBy('created_at', 'desc') // ou 'asc' para ordem crescente
+        //         ->get();
+        // }
+
+        $payments = Payment::where('account_id', $account)
+            ->where('status', 'paid')
+            ->where('type_transaction', $type)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->orderBy('created_at', 'desc') // ou 'asc' para ordem crescente
+            ->get();
+
+
+
+        Log::info("Iniciando reenvio de {$payments->count()} webhooks para a conta: {$account}");
+
+
+
+        foreach ($payments as $payment) {
+
+
+            try {
+
+                //$transactionVerified = $payment->provider_response_data;
+                $transactionVerified = json_decode($payment->provider_response_data, true);
+
+                $this->sendOutgoingWebhook($payment->account_id, $payment, $transactionVerified);
+            } catch (\Exception $e) {
+                Log::error("Erro CRÍTICO ao reenviar webhook.", [
+                    'payment_id' => $payment->id,
+                    'account_id' => $payment->account_id,
+                    'error_message' => $e->getMessage()
+                ]);
+            }
+        }
+    }
+
 
 
 
@@ -384,7 +410,7 @@ class DubaiWebhookController extends Controller
     {
 
 
-        $responseData = $providerResponse;
+        $responseData = $providerResponse ?? [];
         Log::info("DEBUG: Iniciando sendOutgoingWebhook para account_id: {$accountId}");
 
         try {
@@ -421,55 +447,34 @@ class DubaiWebhookController extends Controller
                 'amount' => $payment->amount,
                 'status' => $payment->status,
                 'fee_applied' => $payment->fee,
-                'endToEndId' => $responseData['bankData']['endtoendId'] ?? null,
+                'endToEndId' => $responseData['object']['endToEndId'] ?? null,
                 'processed_at' => now()->toIso8601String(),
                 'uuid' => $payment->provider_transaction_id,
 
             ];
 
-            if ($payment->status === 'paid' && $payment->type_transaction === 'IN') {
+            if ($payment->status === 'paid') {
 
                 $payloadData['metadata'] = [
-                    'authCode' => $responseData['uuid'] ?? null,
+                    'authCode' => $responseData['object']['entryId'] ?? null,
                     'amount' => $payment->amount,
-                    'paymentDateTime' => now()->toIso8601String(),
-                    'pixKey' => $responseData['metadata']['pixKey'] ?? null,
-                    'receiverName' => ' --- ',
-                    'receiverBankName' => ' --- ',
-                    'receiverDocument' => ' --- ',
-                    'receiveAgency' => ' --- ',
-                    'receiveAccount' => ' --- ',
-                    'payerName' => $responseData['bankData']['name'] ?? null,
-                    'payerAgency' => $responseData['bankData']['account'] ?? null,
-                    'payerAccount' => $responseData['bankData']['account'] ?? null,
-                    'payerDocument' => $responseData['bankData']['documentNumber'] ?? null,
+                    'paymentDateTime' => $responseData['object']['updatedAt'] ?? null,
+                    'pixKey' => $responseData['object']['pixKey'] ?? null,
+                    'receiveName' => $responseData['object']['receiver']['name'] ?? null,
+                    'receiverBankName' => $responseData['object']['receiver']['ispb'] ?? null,
+                    'receiverDocument' => $responseData['object']['receiver']['cpfCnpj'] ?? null,
+                    'receiveAgency' => $responseData['object']['receiver']['agency'] ?? null,
+                    'receiveAccount' => $responseData['object']['receiver']['accountNumber'] ?? null,
+                    'payerName' => $responseData['object']['payer']['name'] ?? null,
+                    'payerAgency' => $responseData['object']['payer']['agency'] ?? null,
+                    'payerAccount' => $responseData['object']['payer']['accountNumber'] ?? null,
+                    'payerDocument' => $responseData['object']['payer']['cpfCnpj'] ?? null,
                     'createdAt' => $payment->created_at->toIso8601String(),
-                    'endToEnd' => $responseData['bankData']['endtoendId'] ?? null,
+                    'endToEnd' => $responseData['object']['endToEndId'] ?? null,
                 ];
             } elseif ($payment->status === 'cancelled' && $payment->type_transaction === 'OUT') {
-
                 $payloadData['reason_cancelled'] = $responseData['reason_cancelled'] ?? 'No reason provided.';
                 $payloadData['metadata'] = []; // Envia metadata vazio, como solicitado
-
-            } elseif ($payment->status === 'paid' && $payment->type_transaction === 'OUT') {
-
-                $payloadData['metadata'] = [
-                    'authCode' => $responseData['uuid'] ?? null,
-                    'amount' => $payment->amount,
-                    'paymentDateTime' => now()->toIso8601String(),
-                    'pixKey' => $responseData['metadata']['key'] ?? null,
-                    'receiverName' => $responseData['bankData']['name'] ?? ' --- ',
-                    'receiverBankName' => $responseData['bankData']['ispb'] ?? ' --- ',
-                    'receiverDocument' => $responseData['bankData']['documentNumber'] ?? ' --- ',
-                    'receiveAgency' => $responseData['bankData']['account'] ?? ' --- ',
-                    'receiveAccount' => $responseData['bankData']['account'] ?? ' --- ',
-                    'payerName' => ' --- ',
-                    'payerAgency' => ' --- ',
-                    'payerAccount' => $responseData['transaction']['account'] ?? null,
-                    'payerDocument' => $responseData['transaction']['account'] ?? null,
-                    'createdAt' => $payment->created_at->toIso8601String(),
-                    'endToEnd' => $responseData['bankData']['endtoendId'] ?? null,
-                ];
             }
 
             $jsonPayload = json_encode($payloadData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -517,10 +522,22 @@ class DubaiWebhookController extends Controller
             Log::error("Erro CRÍTICO ao enviar webhook de SAÍDA para account_id: {$accountId}. Erro: " . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
+
+            WebhookResponse::create([
+                "webhook_request_id" => $webhookConfig->id,
+                "status_code" => $response->status(),
+                "headers" => json_encode($response->headers()), // Armazena cabeçalhos como JSON
+                "body" => json_encode($response->body()), // Armazena corpo como JSON
+            ]);
         }
     }
 
-
+    /**
+     * Função "tradutora" privada para determinar o tipo do evento do webhook.
+     *
+     * @param \App\Models\Payment $payment
+     * @return string
+     */
     private function getWebhookType($payment): string
     {
         if ($payment->type_transaction === 'IN' && $payment->status === 'paid') {
@@ -534,30 +551,125 @@ class DubaiWebhookController extends Controller
             if ($payment->status === 'cancelled') {
                 return 'PAYOUT_CANCELED';
             }
-            if ($payment->status === 'processing') {
-                return 'PAYOUT_PROCESSING';
-            }
         }
 
         // Retorna um tipo padrão caso nenhuma condição seja atendida
         return 'UNKNOWN_EVENT';
     }
 
-    private function verifyAuthHeaders(Request $request)
+    /**
+     * Verifica a assinatura do webhook.
+     *
+     * @param string $payload
+     * @param string|null $receivedSignature
+     * @return bool
+     */
+    private function verifySignature(string $payload, ?string $receivedSignature): bool
     {
-        $user = $request->getUser();
-        $password = $request->getPassword();
+        // Obtenha a chave secreta do .env ou config
+        $secretKey = "123123123"; // Exemplo: config/services.php -> ["webhook" => ["secret" => env("WEBHOOK_SECRET")]]
+        // Ou diretamente do env: $secretKey = env("WEBHOOK_SECRET");
 
-        // Pega as credenciais corretas que guardamos na nossa configuração
-        $expectedUser = config('services.dubai.webhook_user');
-        $expectedPassword = config('services.dubai.webhook_password');
-
-        // Compara as credenciais
-        if ($user !== $expectedUser || $password !== $expectedPassword) {
-            // Se não baterem, lança uma exceção de autenticação, que será capturada no método handle
-            throw new AuthenticationException('Invalid webhook credentials.');
+        if (empty($secretKey)) {
+            Log::error("Chave secreta do webhook não configurada.");
+            return false; // Não pode validar sem a chave
         }
 
-        // Se chegou até aqui, as credenciais são válidas.
+        if (empty($receivedSignature)) {
+            Log::warning("Assinatura do webhook ausente no cabeçalho.");
+            return false; // Não pode validar sem a assinatura recebida
+        }
+
+        if ($receivedSignature === $secretKey) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Registra a resposta enviada para o webhook.
+     *
+     * @param WebhookRequest $webhookRequest
+     * @param int $statusCode
+     * @param array $body
+     * @param array $headers
+     */
+    private function logResponse(WebhookRequest $webhookRequest, int $statusCode, array $body, array $headers = []): void
+    {
+        try {
+            WebhookResponse::create([
+                "webhook_request_id" => $webhookRequest->id,
+                "status_code" => $statusCode,
+                "headers" => json_encode($headers), // Armazena cabeçalhos como JSON
+                "body" => json_encode($body), // Armazena corpo como JSON
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Falha ao registrar resposta do webhook: " . $e->getMessage(), [
+                "request_id" => $webhookRequest->id,
+                "status_code" => $statusCode
+            ]);
+        }
+    }
+
+
+    public function store(Request $request, Account $account)
+    {
+        $validated = $request->validate([
+            'url' => 'required|url|max:255',
+            'event' => 'required|in:IN,OUT',
+        ]);
+
+        $webhook = $account->webhooks()->create([
+            'user_id' => Auth::user()->id,
+            'url' => $validated['url'],
+            'event' => $validated['event'],
+            'secret_token' => Str::random(64),
+            'is_active' => true,
+        ]);
+
+        // Renderiza o HTML do novo webhook
+        $html = view('_partials.webhook-item', compact('webhook'))->render();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Webhook saved successfully!',
+            'html' => $html
+        ]);
+    }
+
+    public function regenerate(Account $account, Webhook $webhook)
+    {
+
+        $user = Auth::user();
+        // Opcional: você pode verificar se o webhook pertence ao user
+        if ($user->level !== 'admin' && $webhook->account_id !== $account->id) {
+            abort(403, 'Webhook does not belong to this user');
+        }
+
+        $webhook->update([
+            'secret_token' => Str::random(64),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Secret token regenerated successfully!',
+            'new_token' => $webhook->secret_token
+        ]);
+    }
+
+    public function destroy(Account $account, Webhook $webhook)
+    {
+        $user = Auth::user();
+        // Opcional: você pode verificar se o webhook pertence ao user
+        // if ($user->level !== 'admin' && $webhook->account_id !== $account->id) {
+        //     abort(403, 'Webhook does not belong to this user');
+        // }
+
+        $webhook->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Webhook deleted successfully!'
+        ]);
     }
 }

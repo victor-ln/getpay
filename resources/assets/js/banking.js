@@ -116,8 +116,19 @@ $(document).ready(function () {
 
             // O resto da sua lógica de sucesso continua a mesma
             const pixData = response.data;
-            console.log("Cobrança criada com sucesso:", pixData);
-            $("#pix-qr-code").attr("src", pixData.data.qrcode);
+            const qrcodeData = pixData.data.qrcode;
+
+            if (qrcodeData.startsWith("data:image")) {
+                // É base64, usa direto
+                $("#pix-qr-code").attr("src", qrcodeData);
+            } else {
+                // É texto/link, gera QR Code via API
+                const qrcodeData = pixData.data.pix;
+                const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrcodeData)}`;
+                $("#pix-qr-code").attr("src", qrCodeUrl);
+            }
+
+            // $("#pix-qr-code").attr("src", pixData.data.qrcode);
             $("#pix-copy-paste-code").val(pixData.data.pix);
             $("#pix-amount-display").html(formatCurrency(amount));
 

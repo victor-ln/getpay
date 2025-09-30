@@ -8,6 +8,7 @@ use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WithdrawController;
 use App\Http\Controllers\Api\PaymentController as ApiPaymentController;
 use App\Http\Controllers\Webhook\DubaiWebhookController;
+use App\Http\Controllers\Webhook\OwenWebhookController;
 use App\Http\Controllers\Webhook\XdpagWebhookController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,7 @@ Route::post('/webhook/handler', [WebhookController::class, 'handleWebhook']);
 Route::post('/webhook/resend', [WebhookController::class, 'resendWebhook']);
 Route::post('/webhook/dubai', [DubaiWebhookController::class, 'handle']);
 Route::post('/webhook/xdpag', [XdpagWebhookController::class, 'handleWebhook']);
+Route::post('/webhook/owen', [OwenWebhookController::class, 'handleWebhook']);
 
 
 Route::get('/health', function () {
