@@ -567,7 +567,7 @@ class OwenWebhookController extends Controller
     private function verifySignature(string $payload, ?string $receivedSignature): bool
     {
         // Obtenha a chave secreta do .env ou config
-        $secretKey = "123123123"; // Exemplo: config/services.php -> ["webhook" => ["secret" => env("WEBHOOK_SECRET")]]
+        $secretKey = "8f3e2a9d7c1b5f4e6d8a2c9b7f1e4d3c6a5b8f2e1d7c4b9f3e6a8d2c5b1f7e4d"; // Exemplo: config/services.php -> ["webhook" => ["secret" => env("WEBHOOK_SECRET")]]
         // Ou diretamente do env: $secretKey = env("WEBHOOK_SECRET");
 
         if (empty($secretKey)) {
