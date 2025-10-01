@@ -45,7 +45,7 @@ class PayoutTakeService
 
         try {
             Log::info('🔵 PONTO 2: Buscando system user');
-            $systemUser = User::find(4);
+            $systemUser = User::find(1);
 
             if (!$systemUser) {
                 Log::error('❌ System user não encontrado');
