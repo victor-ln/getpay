@@ -234,8 +234,10 @@ class WebhookController extends Controller
 
         $user = \App\Models\User::find($payment->user_id);
         $account = $user->accounts()->first();
+        $bank = Bank::find($payment->provider_id);
 
-        $acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
+        //$acquirerService = $this->acquirerResolver->resolveAcquirerService($account); 
+        $acquirerService = $this->acquirerResolver->resolveByBank($bank);
         $token = $acquirerService->getToken();
         $transactionVerified = $acquirerService->verifyChargePayOut($payment->provider_transaction_id, $token);
 
