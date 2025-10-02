@@ -17,12 +17,14 @@ class OwenAcquirerService implements AcquirerInterface
     protected $username;
     protected $password;
     protected $credentials;
+    protected $token;
 
     public function __construct(Bank $bank)
     {
         $this->baseUrl = $this->ensureTrailingSlash($bank->baseurl);
         $this->username = $bank->client_id;
         $this->password = $bank->client_secret;
+        $this->token = $bank->token;
         $this->credentials = base64_encode($this->username . ':' . $this->password);
     }
 
@@ -40,7 +42,7 @@ class OwenAcquirerService implements AcquirerInterface
                 'Authorization' => 'Basic ' . $this->credentials,
             ])
                 ->withOptions([
-                    'verify' => false
+                    // 'verify' => false
                 ])
                 ->get($this->baseUrl . 'ping');
 
@@ -78,7 +80,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                //  'verify' => false,
+                //   'verify' => false,
                 'allow_redirects' => false // Impede redirecionamentos automáticos
             ])
                 ->withHeaders([
@@ -90,7 +92,7 @@ class OwenAcquirerService implements AcquirerInterface
                 ])
                 ->post($this->baseUrl . "pix/in/dynamic-qrcode", [
                     'amount' => (float) $data['amount'],
-                    'accountId' => '990283077921',
+                    'accountId' => $this->token,
                     'description' => $data['description'] ?? 'Description in pix transaction',
                     'payerName' => $data['name'],
                     'payerCpfCnpj' => $data['document']
@@ -135,7 +137,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                'verify' => false
+                // 'verify' => false
             ])
                 ->withHeaders([
                     'Accept' => 'application/json',
@@ -144,7 +146,7 @@ class OwenAcquirerService implements AcquirerInterface
                     'X-Requested-With' => 'XMLHttpRequest',
                     'Authorization' => 'Basic ' . $this->credentials,
                 ])
-                ->post($this->baseUrl . "bank-accounts/990283077921/transfer/external", [
+                ->post($this->baseUrl . "bank-accounts/" . $this->token . "./transfer/external", [
                     'amount' => (float) $data['amount'],
                     'pixKey' => $data['pixKey'],
                     'externalId' => $data['externalId'],
@@ -200,7 +202,7 @@ class OwenAcquirerService implements AcquirerInterface
 
 
 
-            dd($response->json());
+            //dd($response->json());
 
 
             return [
@@ -227,7 +229,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                'verify' => false
+                // 'verify' => false
             ])
                 ->withHeaders([
                     'Accept' => 'application/json',
@@ -238,7 +240,7 @@ class OwenAcquirerService implements AcquirerInterface
                 ])
                 ->post($this->baseUrl . "pix/in/refund/" . $data['endToEndId'], []);
 
-            dd($response->json());
+            // dd($response->json());
 
             $data = array(
                 'uuid' => $response->json()['data']['id'],
@@ -281,7 +283,7 @@ class OwenAcquirerService implements AcquirerInterface
                     //  'verify' => false
                 ])
                 // Usar send() permite controlar o método e o corpo separadamente
-                ->send('GET', $this->baseUrl . 'bank-accounts/990283077921/transfer/external/' . $end2end, []);
+                ->send('GET', $this->baseUrl . 'bank-accounts/' . $this->token . '/transfer/external/' . $end2end, []);
 
 
 
@@ -294,7 +296,7 @@ class OwenAcquirerService implements AcquirerInterface
         } catch (\Exception $e) {
             Log::error('Owen create charge exception', [
                 'message' => $e->getMessage(),
-                'data' => $payOut
+                'data' => $end2end
             ]);
 
             return [
