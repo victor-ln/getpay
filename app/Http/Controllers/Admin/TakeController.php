@@ -55,7 +55,7 @@ class TakeController extends Controller
     {
         // [CORREÇÃO] A lógica para obter a data de início foi ajustada para ser mais segura e consistente.
         // Usamos 'completed' para garantir que pegamos a data do último fecho de caixa bem-sucedido.
-        $lastTakeDateString = PlatformTake::where('payout_status', 'completed')
+        $lastTakeDateString = PlatformTake::where('payout_status', 'paid')
             ->latest('end_date')->first()?->end_date ?? '1970-01-01';
 
         // ✅ A CORREÇÃO PRINCIPAL: Converte a string para um objeto Carbon
@@ -65,7 +65,7 @@ class TakeController extends Controller
         // O resto da sua lógica de busca e cálculo continua exatamente a mesma...
         $pendingPayments = Payment::whereNull('take_id')
             ->where('status', 'paid')
-            ->where('created_at', '>', $startDate)
+            ->where('updated_at', '>', $startDate)
             ->get();
 
 
@@ -73,7 +73,7 @@ class TakeController extends Controller
 
         $reportData = $pendingPayments->groupBy('account_id')->map(function ($payments) {
             return (object)[
-                'account_name' => $payments->first()->account->name ?? 'Conta Apagada',
+                'account_name' => $payments->first()->account->name ?? 'Conta ',
                 'total_in'     => $payments->where('type_transaction', 'IN')->sum('amount'),
                 'total_fee'    => $payments->sum('fee'), // ✅ NOVO: Soma de todas as taxas (IN e OUT)
                 'total_cost'   => $payments->sum('cost'), // ✅ NOVO: Soma de todos os custos (IN e OUT)
@@ -117,7 +117,7 @@ class TakeController extends Controller
         ]);
 
         // 2. Recalcula tudo para segurança, ignorando os valores do formulário (exceto os IDs)
-        $lastTakeDate = PlatformTake::where('payout_status', 'completed')->latest('end_date')->first()?->end_date ?? '1970-01-01';
+        $lastTakeDate = PlatformTake::where('payout_status', 'paid')->latest('end_date')->first()?->end_date ?? '1970-01-01';
         $pendingPayments = Payment::whereNull('take_id')->where('status', 'paid')->where('created_at', '>', $lastTakeDate)->get();
 
         if ($pendingPayments->isEmpty()) {

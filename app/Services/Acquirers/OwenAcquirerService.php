@@ -299,7 +299,7 @@ class OwenAcquirerService implements AcquirerInterface
                     //  'verify' => false
                 ])
                 // Usar send() permite controlar o método e o corpo separadamente
-                ->send('GET', $this->baseUrl . 'bank-accounts/' . $this->token . '/transfer/external/' . $end2end, []);
+                ->send('GET', $this->baseUrl . 'bank-accounts/' . $this->accountId . '/transfer/external/' . $end2end, []);
 
 
 
