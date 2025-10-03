@@ -51,13 +51,22 @@ class OwenAcquirerService implements AcquirerInterface
                 ])
                 ->get($this->baseUrl . 'ping');
 
+            // Verificar se a requisição foi bem-sucedida
+            if ($response->failed()) {
+                // Log do erro para debug
+                \Log::error('Ping request failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
 
+                return null; // ou throw exception
+            }
 
+            // Tentar obter o JSON
+            $data = $response->json();
 
-
-
-            if ($response['success'] == true) {
-                return $response['requestId'];
+            if (is_array($data) && isset($data['success']) && $data['success'] === true) {
+                return $data['requestId'] ?? null;
             }
 
 
