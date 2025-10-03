@@ -31,17 +31,15 @@ class PartnerController extends Controller
             ->sum(DB::raw('available_balance + blocked_balance'));
 
         // 2. Calcula o Lucro Líquido Total (Fee - Cost) de todas as transações no período
-        $lastSettlementPayment = \App\Models\Payment::where('account_id', 44)
-            ->where('type_transaction', 'OUT')
-            ->where('status', 'paid')
-            ->latest('created_at') // Ordena do mais novo para o mais antigo
-            ->first();
+        $lastSettlementPayment = \App\Models\PlatformTake::where('payout_status', 'paid')->latest('end_date')->first();
 
 
 
         // 2. Define a data de corte. Se nenhum pagamento for encontrado, usa uma data padrão (ex: o início do dia de hoje).
-        // $startDate = $lastSettlementPayment ? $lastSettlementPayment->created_at : now()->startOfDay();
-        $startDate = '2025-09-02 17:00:00';
+        $startDate = $lastSettlementPayment ? $lastSettlementPayment->created_at : now()->startOfDay();
+
+
+
         $totalNetProfit = \App\Models\Payment::where('created_at', '>=', $startDate)
             ->whereIn('status', ['paid', 'refunded'])
             // ✅ ADICIONADO: Garante que a soma do lucro total exclua as mesmas contas da lista.
@@ -113,7 +111,8 @@ class PartnerController extends Controller
             'totalBalanceInCustody',
             'totalNetProfit',
             'accountSummaries',
-            'banksWithBalance'
+            'banksWithBalance',
+            'lastSettlementPayment'
         ));
     }
 

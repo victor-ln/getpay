@@ -47,6 +47,7 @@ class ReportIncorrectCancellations extends Command
                 'account_name' => $payments->first()->account->name ?? 'Conta Apagada',
                 'total_transactions' => $payments->count(),
                 'total_amount' => $payments->sum('amount'),
+                'total_profit' => ($payments->sum('fee') - $payments->sum('cost')),
             ];
         });
 
@@ -76,6 +77,7 @@ class ReportIncorrectCancellations extends Command
                     $data['account_name'],
                     $data['total_transactions'],
                     'R$ ' . number_format($data['total_amount'], 2, ',', '.'),
+                    'R$ ' . number_format($data['total_profit'], 2, ',', '.'),
                 ];
             })
         );

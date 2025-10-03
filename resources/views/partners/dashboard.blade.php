@@ -58,7 +58,7 @@
     {{-- == SEÇÃO 2: MÉTRICAS GLOBAIS DO NEGÓCIO == --}}
     {{-- ======================================================= --}}
     <h6 class="py-3 mb-4">
-    <span class="text-muted fw-light">Dashboard /</span> Platform Financials
+        <span class="text-muted fw-light">Dashboard /</span> Platform Financials
     </h6>
 
     <div class="row">
@@ -92,14 +92,14 @@
                                 <i class="bx bx-check-circle me-1"></i>Last Take Settled
                             </small>
                             {{-- NÚMERO FALSO PARA O VALOR DO ÚLTIMO TAKE --}}
-                            <h6 class="mb-0">R$ 11.360,74</h6>
+                            <h6 class="mb-0">R$ {{ number_format($lastSettlementPayment['total_net_profit'] ?? 0, 2, ',', '.') }}</h6>
                         </div>
                         <div class="text-end">
                             <small class="text-muted d-block mb-1">
                                 <i class="bx bx-calendar me-1"></i>On Date
                             </small>
                             {{-- DATA FALSA PARA O ÚLTIMO TAKE --}}
-                            <h6 class="mb-0">01/09/2025 17:00</h6>
+                            <h6 class="mb-0">{{ date('d/m/Y H:i', strtotime($lastSettlementPayment['end_date'] ?? date('Y-m-d H:i:s'))) }}</h6>
                         </div>
                     </div>
                 </div>

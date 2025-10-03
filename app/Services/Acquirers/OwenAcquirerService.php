@@ -17,14 +17,17 @@ class OwenAcquirerService implements AcquirerInterface
     protected $username;
     protected $password;
     protected $credentials;
-    protected $token;
+    protected $accountId;
+    protected $userId;
+
 
     public function __construct(Bank $bank)
     {
         $this->baseUrl = $this->ensureTrailingSlash($bank->baseurl);
         $this->username = $bank->client_id;
         $this->password = $bank->client_secret;
-        $this->token = $bank->token;
+        $this->accountId = $bank->token;
+        $this->userId = $bank->user;
         $this->credentials = base64_encode($this->username . ':' . $this->password);
     }
 
@@ -83,7 +86,7 @@ class OwenAcquirerService implements AcquirerInterface
         try {
             $response = Http::withOptions([
                 //'verify' => false,
-                'allow_redirects' => false // Impede redirecionamentos automáticos
+                'allow_redirects' => false
             ])
                 ->withHeaders([
                     'Accept' => 'application/json',
@@ -94,10 +97,12 @@ class OwenAcquirerService implements AcquirerInterface
                 ])
                 ->post($this->baseUrl . "pix/in/dynamic-qrcode", [
                     'amount' => (float) $data['amount'],
-                    'accountId' => $this->token,
+                    'accountId' => $this->accountId,
+                    'userId' => $this->userId,
                     'description' => $data['description'] ?? 'Description in pix transaction',
                     'payerName' => $data['name'],
-                    'payerCpfCnpj' => $data['document']
+                    'payerCpfCnpj' => $data['document'],
+                    'expirationSeconds' => $data['expire']
                 ]);
 
 
@@ -139,7 +144,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                // 'verify' => false
+                //  'verify' => false
             ])
                 ->withHeaders([
                     'Accept' => 'application/json',
@@ -148,7 +153,7 @@ class OwenAcquirerService implements AcquirerInterface
                     'X-Requested-With' => 'XMLHttpRequest',
                     'Authorization' => 'Basic ' . $this->credentials,
                 ])
-                ->post($this->baseUrl . "bank-accounts/" . $this->token . "./transfer/external", [
+                ->post($this->baseUrl . "bank-accounts/" . $this->accountId . "/transfer/external", [
                     'amount' => (float) $data['amount'],
                     'pixKey' => $data['pixKey'],
                     'externalId' => $data['externalId'],
