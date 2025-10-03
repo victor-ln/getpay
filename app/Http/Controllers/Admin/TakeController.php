@@ -164,7 +164,7 @@ class TakeController extends Controller
 
         // 7. Redireciona o utilizador para a página de histórico com uma mensagem de sucesso
         return redirect()->route('admin.takes.index')
-            ->with('success', "Take #{$take->id} successfully created! Withdrawals are being processed in the background.");
+            ->with('success', "Take #{$take->id} successfully created! Withdrawals are being processed in the background mode.");
     }
 
     // Métodos auxiliares para manter o código limpo
