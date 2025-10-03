@@ -37,8 +37,10 @@ class OwenAcquirerService implements AcquirerInterface
 
 
             $response = Http::withHeaders([
-                'accept' => '*/*',
+                'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
+                'User-Agent' => 'API Client/1.0',
+                'X-Requested-With' => 'XMLHttpRequest',
                 'Authorization' => 'Basic ' . $this->credentials,
             ])
                 ->withOptions([
