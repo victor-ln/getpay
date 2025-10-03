@@ -42,7 +42,7 @@ class OwenAcquirerService implements AcquirerInterface
                 'Authorization' => 'Basic ' . $this->credentials,
             ])
                 ->withOptions([
-                    // 'verify' => false
+                    'verify' => false
                 ])
                 ->get($this->baseUrl . 'ping');
 
@@ -80,7 +80,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                //   'verify' => false,
+                'verify' => false,
                 'allow_redirects' => false // Impede redirecionamentos automáticos
             ])
                 ->withHeaders([

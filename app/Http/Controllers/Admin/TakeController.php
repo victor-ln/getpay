@@ -24,11 +24,11 @@ class TakeController extends Controller
 
 
         $kpis = [
-            'profit_this_month' => PlatformTake::whereMonth('updated_at', now()->month)
-                ->whereYear('updated_at', now()->year)
+            'profit_this_month' => PlatformTake::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
                 ->sum('total_net_profit'),
-            'takes_this_month' => PlatformTake::whereMonth('updated_at', now()->month)
-                ->whereYear('updated_at', now()->year)
+            'takes_this_month' => PlatformTake::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
                 ->count(),
         ];
 

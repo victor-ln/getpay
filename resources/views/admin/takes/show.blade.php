@@ -64,6 +64,7 @@
                     <th class="text-end">Total IN (Volume)</th>
                     <th class="text-end">Total Fee</th>
                     <th class="text-end">Total Cost</th>
+                    <th class="text-end">Total Profit</th>
                 </tr>
             </thead>
             <tbody>
@@ -73,6 +74,7 @@
                     <td class="text-end">R$ {{ number_format($reportItem['total_in'], 2, ',', '.') }}</td>
                     <td class="text-end">R$ {{ number_format($reportItem['total_fee'], 2, ',', '.') }}</td>
                     <td class="text-end text-danger">R$ {{ number_format($reportItem['total_cost'], 2, ',', '.') }}</td>
+                    <td class="text-end text-primary">R$ {{ number_format($reportItem['total_fee'] - $reportItem['total_cost'], 2, ',', '.') }}</td>
                 </tr>
                 @empty
                 <tr>
