@@ -135,6 +135,7 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => (int) env('REDIS_PORT', 6379),
             'database' => (int) env('REDIS_DB', 0),
+            'scheme' => (int) env('REDIS_SCHEME', 'tcp'),
         ],
 
         'cache' => [
@@ -144,6 +145,7 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => (int) env('REDIS_PORT', 6379), // ✅ CORRIGIDO - cast para int
             'database' => (int) env('REDIS_CACHE_DB', 1), // ✅ CORRIGIDO - cast para int e valor padrão sem aspas
+            'scheme' => (int) env('REDIS_SCHEME', 'tcp'),
         ],
 
     ],
