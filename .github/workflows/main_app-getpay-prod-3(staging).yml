@@ -1,6 +1,9 @@
 name: Deploy PHP App to Azure Web App
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -17,7 +20,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
-          extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql, zip, gd
+          extensions: mbstring, xml, ctype, json, curl, dom, fileinfo, pdo, pdo_pgsql, zip, gd, redis
           tools: composer:v2
           coverage: none
 
