@@ -24,6 +24,10 @@ jobs:
           tools: composer:v2
           coverage: none
 
+      - name: Setup PHP Extensions
+        run: |
+          echo "extension=redis.so" >> /usr/local/etc/php/conf.d/php.ini
+
       - name: Cache Composer dependencies
         uses: actions/cache@v3
         with:
