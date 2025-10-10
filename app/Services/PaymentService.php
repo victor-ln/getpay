@@ -79,7 +79,7 @@ class PaymentService
         $maxAmount = max(0.01, (float) $maxAccount);
 
 
-
+        $data['document'] = (string) $data['document'];
 
         // Validate input data
         $validator = Validator::make($data, [

@@ -34,6 +34,8 @@ use App\Http\Controllers\Admin\TakeController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ScheduledTakeController;
 use App\Http\Controllers\ReportController as DownloadReportController;
+use App\Http\Controllers\Admin\MedController;
+use App\Http\Controllers\Admin\UserReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -101,7 +103,23 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/payments/{payment}/download', [PaymentController::class, 'downloadReceipt'])->name('payments.receipt.download');
 
 
+    Route::prefix('admin/meds')->name('admin.meds.')->group(function () {
+        // Rota principal para a página de gestão de MEDs
+        Route::get('/', [MedController::class, 'index'])->name('index');
 
+        // Rota que usaremos com JavaScript para carregar os dados de cada aba
+        Route::get('/data/{bank}', [MedController::class, 'getMedDataForBank'])->name('data');
+    });
+
+    Route::prefix('admin/user-reports')->name('admin.user-reports.')->group(function () {
+        Route::get('/', [UserReportController::class, 'index'])->name('index');
+        Route::get('/by-account-data', [UserReportController::class, 'getByAccountData'])->name('by-account-data');
+        Route::get('/multi-account-data', [UserReportController::class, 'getMultiAccountData'])->name('multi-account-data');
+
+        // Novas rotas para análise individual
+        Route::get('/search-users', [UserReportController::class, 'searchUsers'])->name('search-users');
+        Route::get('/user-behavior', [UserReportController::class, 'getUserBehavior'])->name('user-behavior');
+    });
 
 
     Route::get('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');

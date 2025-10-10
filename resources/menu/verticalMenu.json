@@ -77,6 +77,20 @@
             "icon": "menu-icon tf-icons bx bx-bot",
             "slug": "scheduled-takes",
             "access": ["admin"]
+        },
+        {
+            "url": "/admin/meds",
+            "name": "MED Management",
+            "icon": "menu-icon tf-icons bx bx-shield-quarter",
+            "slug": "med-management",
+            "access": ["admin"]
+        },
+        {
+            "url": "/admin/user-reports",
+            "name": "User Reports",
+            "icon": "menu-icon tf-icons bx bx-user-pin",
+            "slug": "user-reports",
+            "access": ["admin", "client"]
         }
     ]
 }

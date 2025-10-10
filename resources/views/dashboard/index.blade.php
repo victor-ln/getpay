@@ -513,7 +513,24 @@
                             </span>
                         </td>
                         <td>{{ $transaction->name ?? 'N/A' }}</td>
-                        <td>{{ $transaction->document ?? 'N/A' }}</td>
+                        <td>
+                            @php
+                            $doc = $transaction->document ? preg_replace('/[^0-9]/', '', $transaction->document) : null;
+                            $masked = 'N/A';
+
+                            if ($doc) {
+                            if (strlen($doc) === 11) {
+                            $masked = preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '***.$2.***-**', $doc);
+                            } elseif (strlen($doc) === 14) {
+                            $masked = preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '**.$2.***/****-**', $doc);
+                            } else {
+                            $masked = '***' . substr($doc, -4);
+                            }
+                            }
+                            @endphp
+
+                            {{ $masked }}
+                        </td>
                         <td>{{ $transaction->created_at->format('d/m/Y H:i:s') }}</td>
                         <td>{{ $transaction->updated_at->format('d/m/Y H:i:s') }}</td>
                         @if (Auth::check() && Auth::user()->level == 'admin')

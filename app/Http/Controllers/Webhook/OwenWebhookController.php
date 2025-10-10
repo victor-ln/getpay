@@ -57,7 +57,7 @@ class OwenWebhookController extends Controller
         $webhookRequest = WebhookRequest::create([
             "ip_address" => $request->ip(),
             "payload"    => $request->getContent(),
-            "signature"  => $request->header("x-signature"),
+            "signature"  => $request->header("Authorization"),
         ]);
 
 
@@ -483,7 +483,7 @@ class OwenWebhookController extends Controller
             // LOG IMPORTANTE: Verifique se os dados parecem corretos
             Log::debug("DEBUG: Preparando para enviar webhook.", [
                 'url' => $urlClient,
-                'payload' => $payloadData,
+                'payload' => $jsonPayload,
                 'signature' => $signature
             ]);
 
@@ -498,7 +498,7 @@ class OwenWebhookController extends Controller
                 ])
 
                 ->timeout(15) // Adiciona um timeout de 15 segundos
-                ->post($urlClient, $payloadData);
+                ->post($urlClient, $jsonPayload);
 
             // 6. Logar o resultado
             if ($response->successful()) {
