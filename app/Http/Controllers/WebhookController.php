@@ -495,7 +495,8 @@ class WebhookController extends Controller
                 ])
 
                 ->timeout(15) // Adiciona um timeout de 15 segundos
-                ->post($urlClient, $payloadData);
+                ->withBody($jsonPayload, 'application/json')
+                ->post($urlClient);
 
             // 6. Logar o resultado
             if ($response->successful()) {

@@ -498,7 +498,8 @@ class XdpagWebhookController extends Controller
                 ])
 
                 ->timeout(15) // Adiciona um timeout de 15 segundos
-                ->post($urlClient, $jsonPayload);
+                ->withBody($jsonPayload, 'application/json')
+                ->post($urlClient);
 
             // 6. Logar o resultado
             if ($response->successful()) {

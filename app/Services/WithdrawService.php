@@ -67,6 +67,8 @@ class WithdrawService
         Log::info("[TRACE:{$traceId}] --- INÍCIO DO PROCESSAMENTO ---");
         $T1 = microtime(true); // Tempo inicial
 
+        $data['pixKeyType'] = strtoupper($data['pixKeyType']);
+
         $validator = Validator::make($data, [
             'externalId'     => 'required|string|unique:payments,external_payment_id',
             'pixKey'         => 'required|string|max:255',

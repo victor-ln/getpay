@@ -16,6 +16,7 @@ use App\Helpers\FormatHelper;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use App\Models\Account;
+use App\Models\ActivityLog;
 
 class UserController extends Controller
 {
@@ -152,6 +153,13 @@ class UserController extends Controller
         }
 
 
+        $passwordChangeLogs = ActivityLog::where('user_id', $user->id)
+            ->where('action', 'PASSWORD_UPDATED')
+            ->latest() // Ordena pelos mais recentes
+            ->limit(10) // Limita aos últimos 10 registos para não sobrecarregar
+            ->get();
+
+
 
 
         return view('users.edit', [
@@ -159,6 +167,7 @@ class UserController extends Controller
             'accounts' => $accounts,
             'qrCodeImage' => $qrCodeImage,
             'secretKeyForManualEntry' => $secretKeyForManualEntry,
+            'passwordChangeLogs' => $passwordChangeLogs,
         ]);
     }
 
@@ -200,6 +209,27 @@ class UserController extends Controller
         // Atualiza a senha
         $user->password = bcrypt($request->password);
         $user->save();
+
+        $actor = Auth::user();
+
+        ActivityLog::create([
+            // O "alvo" da ação: o utilizador que teve a senha modificada
+            'user_id' => $user->id,
+
+            'action' => 'PASSWORD_UPDATED',
+            'level' => 'warning', // Alterar senha é uma ação crítica
+            'message' => "Password updated.",
+
+            // Guarda os detalhes de QUEM fez a alteração
+            'context' => [
+                'actor_id' => $actor->id,
+                'actor_name' => $actor->name,
+                'actor_email' => $actor->email,
+            ],
+
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response()->json(['message' => 'Password updated successfully!']);
     }

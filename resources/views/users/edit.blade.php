@@ -192,6 +192,45 @@
                     </div>
                 </div>
 
+                <div class="card">
+                    <h5 class="card-header">Password Change History</h5>
+                    <div class="card-body">
+                        <p>Here is the recent history of password changes for this account.</p>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Changed By</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse ($passwordChangeLogs as $log)
+                                    <tr>
+                                        <td>{{ $log->created_at->format('d/m/Y H:i:s') }}</td>
+                                        <td>
+                                            {{-- Exibe o nome do "ator" que está guardado no contexto --}}
+                                            {{ $log->context['actor_name'] ?? 'N/A' }}
+                                            <small class="d-block text-muted">{{ $log->context['actor_email'] ?? '' }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-label-secondary">{{ $log->ip_address }}</span>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center">
+                                            No password change history found for this user.
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Card de 2FA (Aparece apenas se for o próprio usuário logado) --}}
                 @if ($user && $user->id && Auth::id() == $user->id)
                 {{-- Card de 2FA Refatorado para AJAX --}}
