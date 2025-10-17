@@ -91,6 +91,13 @@
             "icon": "menu-icon tf-icons bx bx-user-pin",
             "slug": "user-reports",
             "access": ["admin", "client"]
+        },
+        {
+            "url": "/balance-history",
+            "name": "Balance Statement",
+            "icon": "menu-icon tf-icons bx bx-list-ul",
+            "slug": "balance-history",
+            "access": ["admin", "client"]
         }
     ]
 }

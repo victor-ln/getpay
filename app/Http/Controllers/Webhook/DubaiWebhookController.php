@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Webhook;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Account, Payment, Webhook, Bank, User, Balance, WebhookRequest, WebhookResponse}; // NOVO: Adicionado Balance
+use App\Models\{Account, Payment, Webhook, Bank, User, Balance, WebhookRequest, WebhookResponse, BalanceHistory};
 use App\Services\AcquirerResolverService;
 use App\Services\FeeCalculatorService;
 use App\Services\FeeService;
@@ -211,6 +211,8 @@ class DubaiWebhookController extends Controller
             $account = Account::where('id', $payment->account_id)->first();
             $fee = $this->feeCalculatorService->calculate($account, $payment->amount, 'IN');
 
+            $balanceBefore = $balance->available_balance;
+
 
 
 
@@ -234,6 +236,19 @@ class DubaiWebhookController extends Controller
 
                     $balance->available_balance += $netAmount;
                     $balance->save();
+
+                    $balanceAfter = $balance->available_balance;
+
+                    BalanceHistory::create([
+                        'account_id' => $payment->account_id,
+                        'acquirer_id' => $payment->provider_id,
+                        'payment_id' => $payment->id,
+                        'type' => 'credit',
+                        'balance_before' => $balanceBefore,
+                        'amount' => $netAmount,
+                        'balance_after' => $balanceAfter,
+                        'description' => 'PIX deposit received: ' . $payment->amount . ' | Fee applied: ' . $fee . ' | id: ' . $payment->id,
+                    ]);
 
                     break;
 
@@ -305,6 +320,8 @@ class DubaiWebhookController extends Controller
 
 
             $totalBlockedAmount = $payment->amount + $payment->fee;
+            $balanceBefore = $balance->available_balance;
+            $balanceAfter = $balanceBefore;
 
 
             // Usamos um switch para tratar cada status
@@ -318,6 +335,17 @@ class DubaiWebhookController extends Controller
                     $payment->document = $payload['bankData']['documentNumber'] ?? '---';
                     $payment->provider_transaction_id = $payload['transaction']['uuid'] ?? '---';
                     $balance->blocked_balance -= $totalBlockedAmount; // Apenas remove do bloqueado
+
+                    BalanceHistory::create([
+                        'account_id' => $payment->account_id,
+                        'acquirer_id' => $payment->provider_id,
+                        'payment_id' => $payment->id,
+                        'type' => 'debit',
+                        'balance_before' => $balanceBefore,
+                        'amount' => $totalBlockedAmount, // Positivo para indicar um crédito
+                        'balance_after' => $balanceAfter,
+                        'description' => 'Withdrawal finished. ID: ' . $payment->external_payment_id,
+                    ]);
 
                     Log::info("Pay-out confirmado como 'FINISHED'. Saldo bloqueado liberado.", [
                         'payment_id' => $payment->id,
@@ -340,6 +368,18 @@ class DubaiWebhookController extends Controller
                     $payment->status = 'cancelled';
                     $balance->blocked_balance -= $totalBlockedAmount; // Remove do bloqueado
                     $balance->available_balance += $totalBlockedAmount; // E devolve para o disponível
+
+                    $balanceAfter = $balance->available_balance;
+                    BalanceHistory::create([
+                        'account_id' => $payment->account_id,
+                        'acquirer_id' => $payment->provider_id,
+                        'payment_id' => $payment->id,
+                        'type' => 'credit',
+                        'balance_before' => $balanceBefore,
+                        'amount' => $totalBlockedAmount, // Positivo para indicar um crédito
+                        'balance_after' => $balanceAfter,
+                        'description' => 'Reversal for withdrawal ID: ' . $payment->external_payment_id,
+                    ]);
 
                     Log::info("Pay-out confirmado como 'CANCELED'. Saldo devolvido para disponível.", [
                         'payment_id' => $payment->id,

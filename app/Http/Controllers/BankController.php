@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Bank, Payment};
+use App\Models\{Bank, Payment, Account};
 use App\Services\BankKpiService;
 use Illuminate\Http\Request;
 use App\Traits\ToastTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Services\AcquirerResolverService;
+use Illuminate\Support\Facades\Log;
 
 class BankController extends Controller
 {
@@ -15,16 +18,79 @@ class BankController extends Controller
     use ToastTrait;
 
     protected $kpiService;
+    protected $acquirerResolver;
 
-    public function __construct(BankKpiService $kpiService)
+    public function __construct(BankKpiService $kpiService, AcquirerResolverService $acquirerResolver)
     {
         $this->kpiService = $kpiService;
+        $this->acquirerResolver = $acquirerResolver;
     }
     public function index()
     {
+        $banks = Bank::all();
 
-        $banks =  Bank::all();
-        return view('banks.index', compact('banks'));
+        // Separa os bancos em duas coleções para as abas
+        $activeBanks = $banks->where('active', true);
+        $inactiveBanks = $banks->where('active', false);
+
+        return view('banks.index', compact('activeBanks', 'inactiveBanks'));
+    }
+
+
+    /**
+     * Busca e retorna os dados detalhados de um banco para o modal.
+     */
+    public function details(Bank $bank)
+    {
+        // Calcula o total em custódia (a partir da sua tabela 'balances')
+        $custody = DB::table('balances')
+            ->where('acquirer_id', $bank->id)
+            ->selectRaw('SUM(available_balance + blocked_balance) as total')
+            ->first()->total ?? 0;
+
+        // ✅ [A ADIÇÃO] Busca os clientes e o saldo individual de cada um neste banco
+        $clientsWithBalance = DB::table('accounts as a')
+            ->join('balances as b', function ($join) use ($bank) {
+                $join->on('a.id', '=', 'b.account_id')
+                    ->where('b.acquirer_id', '=', $bank->id);
+            })
+            ->where('a.acquirer_id', $bank->id)
+            ->select(
+                'a.name',
+                DB::raw('b.available_balance + b.blocked_balance as total_balance')
+            )
+            ->get()
+            ->map(function ($client) {
+                // Formata os dados para o JavaScript
+                return [
+                    'name' => $client->name,
+                    'balance_formatted' => number_format($client->total_balance, 2, ',', '.')
+                ];
+            });
+
+        // Busca o saldo real da API da liquidante (sua lógica existente)
+        $acquirerBalance = 'N/A';
+        try {
+            $acquirerService = $this->acquirerResolver->resolveByBank($bank);
+            if (method_exists($acquirerService, 'getBalance')) {
+                $token = $acquirerService->getToken();
+                $response = $acquirerService->getBalance($token);
+                if (isset($response['data']['balance'])) {
+                    $acquirerBalance = $response['data']['balance'];
+                }
+            }
+        } catch (\Exception $e) {
+            report($e);
+            $acquirerBalance = 'Error';
+        }
+
+        // Retorna todos os dados como JSON
+        return response()->json([
+            'bank_name' => $bank->name,
+            'total_custody' => number_format($custody, 2, ',', '.'),
+            'acquirer_balance' => is_numeric($acquirerBalance) ? number_format($acquirerBalance, 2, ',', '.') : $acquirerBalance,
+            'active_clients' => $clientsWithBalance, // Envia a nova lista detalhada
+        ]);
     }
 
     public function store(Request $request)

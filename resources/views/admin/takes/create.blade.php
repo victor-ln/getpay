@@ -4,6 +4,8 @@
 
 @section('title', 'Generate New Take')
 
+@vite('resources/assets/js/no-double-click.js')
+
 @section('content')
 <h5>Generate New Take</h5>
 <p class="text-muted">

@@ -143,7 +143,7 @@ class TakeController extends Controller
                 'total_costs_in'    => $summary['total_costs_in'],
                 'total_costs_out'   => $summary['total_costs_out'],
                 'report_data'       => $reportData,
-                'payout_status'     => 'processing', // O status inicial é "a processar"
+                'payout_status'     => 'paid', // O status inicial é "a processar"
                 'executed_by_user_id' => Auth::id(),
             ]);
 

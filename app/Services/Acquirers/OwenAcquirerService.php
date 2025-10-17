@@ -47,7 +47,7 @@ class OwenAcquirerService implements AcquirerInterface
                 'Authorization' => 'Basic ' . $this->credentials,
             ])
                 ->withOptions([
-                    //  'verify' => false
+                    'verify' => false
                 ])
                 ->get($this->baseUrl . 'ping');
 
@@ -319,6 +319,54 @@ class OwenAcquirerService implements AcquirerInterface
                 'statusCode' => 500,
                 'data' => ['error' => $e->getMessage()],
                 'acquirer' => 'Owen'
+            ];
+        }
+    }
+
+    public function getBalance($token)
+    {
+
+
+        try {
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'User-Agent' => 'API Client/1.0',
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Authorization' => 'Basic ' . $this->credentials,
+            ])
+                ->withOptions([
+                    'verify' => false
+                ])
+                ->send('GET', $this->baseUrl . 'bank-accounts/' . $this->accountId . '/balance', []);
+
+
+            // ✅ [A ADIÇÃO] Log para depuração.
+            // Isto irá guardar a resposta completa da API nos seus logs para análise.
+            Log::info('Resposta da API getBalance:', [
+                'status_code' => $response->status(),
+                'response_body' => $response->body(), // Usamos body() para ver o texto bruto
+            ]);
+
+            // Verifica se a resposta foi bem-sucedida antes de tentar aceder ao JSON
+            if (!$response->successful()) {
+                throw new \Exception("A API da adquirente retornou um erro de status: " . $response->status());
+            }
+
+            // A sua lógica original continua aqui
+            return [
+                'statusCode' => $response->status(),
+                'data' => $response->json()['data']
+            ];
+        } catch (\Exception $e) {
+            Log::error('Exceção ao chamar a API getBalance', [
+                'message' => $e->getMessage()
+            ]);
+
+            return [
+                'statusCode' => 500,
+                'data' => ['error' => $e->getMessage()],
+                'acquirer' => 'truzt' // ou o nome correto do seu adquirente
             ];
         }
     }

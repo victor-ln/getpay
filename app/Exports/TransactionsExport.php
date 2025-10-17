@@ -14,8 +14,10 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class TransactionsExport implements FromQuery, WithHeadings, WithMapping, ShouldQueue, WithEvents
+class TransactionsExport implements FromQuery, WithHeadings, WithMapping, ShouldQueue, WithEvents, WithColumnFormatting
 {
     use Exportable;
 
@@ -67,35 +69,51 @@ class TransactionsExport implements FromQuery, WithHeadings, WithMapping, Should
      */
     public function query()
     {
-        // ✅ [MELHORIA] A lógica de filtros agora é mais limpa e centralizada
+        // ✅ [CORREÇÃO] A lógica de filtros agora espelha a do seu DashboardController
         $query = Payment::query()->where('account_id', $this->accountId);
 
-        // Aplica os filtros recebidos do controller
-        if (!empty($this->filters['status'])) {
-            $query->where('status', $this->filters['status']);
-        }
-        if (!empty($this->filters['type_transaction'])) {
-            $query->where('type_transaction', $this->filters['type_transaction']);
-        }
-        // ... (etc, para todos os seus outros filtros)
+        $request = new \Illuminate\Http\Request($this->filters);
 
         // Lógica de filtro de data
-        if (!empty($this->filters['start_date']) && !empty($this->filters['end_date'])) {
-            $startDate = Carbon::parse($this->filters['start_date'])->startOfDay();
-            $endDate = Carbon::parse($this->filters['end_date'])->endOfDay();
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $startDate = Carbon::parse($request->start_date)->startOfDay();
+            $endDate = Carbon::parse($request->end_date)->endOfDay();
             $query->whereBetween('created_at', [$startDate, $endDate]);
-        } elseif (!empty($this->filters['date_filter'])) {
-            $filter = $this->filters['date_filter'];
-            if ($filter === 'today') {
-                $query->whereDate('created_at', now());
-            } elseif ($filter === 'yesterday') {
-                $query->whereDate('created_at', now()->subDay());
-            } elseif (is_numeric($filter)) {
-                $query->where('created_at', '>=', now()->subDays((int)$filter)->startOfDay());
+        } else {
+            $period = $request->input('date_filter', 'today');
+            switch ($period) {
+                case 'yesterday':
+                    $query->whereDate('created_at', now()->subDay());
+                    break;
+                case '7':
+                    $query->where('created_at', '>=', now()->subDays(7)->startOfDay());
+                    break;
+                case '30':
+                    $query->where('created_at', '>=', now()->subDays(30)->startOfDay());
+                    break;
+                case 'today':
+                    $query->whereDate('created_at', now());
+                    break;
             }
         }
 
-        return $query->latest(); // Ordena pelos mais recentes
+        // Outros filtros
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('type_transaction')) {
+            $query->where('type_transaction', $request->type_transaction);
+        }
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('document', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('external_payment_id', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        return $query->latest();
     }
 
     /**
@@ -126,6 +144,19 @@ class TransactionsExport implements FromQuery, WithHeadings, WithMapping, Should
             'Fee (BRL)',
             'Status',
             'Date',
+        ];
+    }
+
+    /**
+     * ✅ [CORREÇÃO] Define o formato das colunas.
+     */
+    public function columnFormats(): array
+    {
+        // Força a coluna A (onde está o 'External ID') a ser tratada como TEXTO no Excel.
+        return [
+            'A' => NumberFormat::FORMAT_TEXT,
+            'C' => NumberFormat::FORMAT_NUMBER_00, // Formata Amount com 2 casas decimais
+            'D' => NumberFormat::FORMAT_NUMBER_00, // Formata Fee com 2 casas decimais
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\Balance;
+use App\Models\BalanceHistory;
 use App\Models\Bank;
 use App\Models\Log as CustomLog;
 use App\Models\Payment;
@@ -146,11 +147,26 @@ class WithdrawService
                     ->lockForUpdate() // Trava a linha para evitar que outras requisições a alterem
                     ->firstOrFail();
 
+                $balanceBefore = $balanceToUpdate->available_balance;
+
                 $balanceToUpdate->available_balance -= $totalDebitAmount;
                 $balanceToUpdate->blocked_balance += $totalDebitAmount;
                 $balanceToUpdate->save();
 
+                $balanceAfter = $balanceToUpdate->available_balance;
+
                 $payment = $this->createPendingPayment($user, $validatedData, $fee);
+
+                BalanceHistory::create([
+                    'account_id' => $account->id,
+                    'acquirer_id' => $account->acquirer_id,
+                    'payment_id' => $payment->id,
+                    'type' => 'debit',
+                    'balance_before' => $balanceBefore,
+                    'amount' => -$totalDebitAmount, // Negativo para indicar um débito
+                    'balance_after' => $balanceAfter,
+                    'description' => 'Withdrawal request initiated: ' . $payment->external_payment_id,
+                ]);
             });
             $this->logAction($user, self::ACTION_WITHDRAW_FUNDS_BLOCKED, ['payment_id' => $payment->id, 'amount' => $totalDebitAmount]);
         } catch (Exception $e) {
@@ -231,15 +247,29 @@ class WithdrawService
                 return;
             }
 
+            $balanceBefore = $balance->available_balance;
             // A lógica de reverter o saldo permanece a mesma,
             // mas agora temos certeza de que está sendo aplicada no registro certo.
             $balance->blocked_balance -= $totalDebitAmount;
             $balance->available_balance += $totalDebitAmount;
             $balance->save();
 
+            $balanceAfter = $balance->available_balance;
+
             if ($payment) {
                 $payment->status = 'failed';
                 $payment->save();
+
+                BalanceHistory::create([
+                    'account_id' => $account->id,
+                    'acquirer_id' => $account->acquirer_id,
+                    'payment_id' => $payment->id,
+                    'type' => 'credit',
+                    'balance_before' => $balanceBefore,
+                    'amount' => $totalDebitAmount, // Positivo para indicar um crédito
+                    'balance_after' => $balanceAfter,
+                    'description' => 'Reversal for withdrawal ID: ' . $payment->external_payment_id,
+                ]);
             }
         });
     }

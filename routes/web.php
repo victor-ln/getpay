@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\ScheduledTakeController;
 use App\Http\Controllers\ReportController as DownloadReportController;
 use App\Http\Controllers\Admin\MedController;
 use App\Http\Controllers\Admin\UserReportController;
+use App\Http\Controllers\BalanceHistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -91,6 +92,8 @@ Route::middleware('auth')->group(function () {
 
 
 Route::middleware(['auth'])->group(function () {
+
+    Route::get('/balance-history', [BalanceHistoryController::class, 'index'])->name('balance.history');
 
     Route::get('/admin/clients', [AdminController::class, 'listClients']);
     Route::get('/dashboard-data', [ApiDashboardController::class, 'getDashboardData']);
@@ -231,6 +234,8 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('/banks', BankController::class)->names('banks')->middleware('check.level:admin,manager');
     Route::patch('/banks/{bank}/activate', [BankController::class, 'activate'])->name('banks.activate')->middleware('check.level:admin,manager');
+
+    Route::get('admin/banks/{bank}/details', [BankController::class, 'details'])->name('banks.details');
 
 
     // Rota para logout

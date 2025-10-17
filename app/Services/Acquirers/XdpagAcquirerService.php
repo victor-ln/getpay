@@ -85,7 +85,7 @@ class XdpagAcquirerService implements AcquirerInterface
         try {
             $response = Http::withToken($token)
                 ->withOptions([
-                    //    'verify' => false,
+                    'verify' => false,
                     'allow_redirects' => false // Impede redirecionamentos automáticos
                 ])
                 ->withHeaders([
@@ -206,7 +206,7 @@ class XdpagAcquirerService implements AcquirerInterface
                     'Accept' => 'application/json', // Boa prática para indicar que você espera JSON
                 ])
                 ->withOptions([
-                    //  'verify' => false
+                    'verify' => false
                 ])
                 // Usar send() permite controlar o método e o corpo separadamente
                 ->send('GET', $this->baseUrl . 'order/pay-in/' . $payInId, []);
@@ -290,7 +290,7 @@ class XdpagAcquirerService implements AcquirerInterface
                     'Accept' => 'application/json', // Boa prática para indicar que você espera JSON
                 ])
                 ->withOptions([
-                    //  'verify' => false
+                    'verify' => false
                 ])
                 // Usar send() permite controlar o método e o corpo separadamente
                 ->send('GET', $this->baseUrl . 'order/pay-out/' . $payOut, []);
@@ -313,6 +313,49 @@ class XdpagAcquirerService implements AcquirerInterface
                 'statusCode' => 500,
                 'data' => ['error' => $e->getMessage()],
                 'acquirer' => 'truzt'
+            ];
+        }
+    }
+
+    public function getBalance($token)
+    {
+        try {
+            $response = Http::withToken($token)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->withOptions([
+                    'verify' => false
+                ])
+                ->send('GET', $this->baseUrl . 'order/balance', []);
+
+            // ✅ [A ADIÇÃO] Log para depuração.
+            // Isto irá guardar a resposta completa da API nos seus logs para análise.
+            Log::info('Resposta da API getBalance:', [
+                'status_code' => $response->status(),
+                'response_body' => $response->body(), // Usamos body() para ver o texto bruto
+            ]);
+
+            // Verifica se a resposta foi bem-sucedida antes de tentar aceder ao JSON
+            if (!$response->successful()) {
+                throw new \Exception("A API da adquirente retornou um erro de status: " . $response->status());
+            }
+
+            // A sua lógica original continua aqui
+            return [
+                'statusCode' => $response->status(),
+                'data' => $response->json()['data']
+            ];
+        } catch (\Exception $e) {
+            Log::error('Exceção ao chamar a API getBalance', [
+                'message' => $e->getMessage()
+            ]);
+
+            return [
+                'statusCode' => 500,
+                'data' => ['error' => $e->getMessage()],
+                'acquirer' => 'truzt' // ou o nome correto do seu adquirente
             ];
         }
     }
