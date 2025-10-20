@@ -14,6 +14,7 @@ use App\Services\FeeService;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Brick\Money\Money;
 use Illuminate\Support\Facades\Validator;
 use PragmaRX\Google2FA\Google2FA;
 use App\Traits\ValidatesTwoFactorAuthentication;
@@ -95,7 +96,7 @@ class WithdrawService
         // --- FIM DO BLOCO 2FA ---
 
 
-        $amountToWithdraw = (float) $validatedData['amount'];
+        $amountToWithdraw = Money::of($validatedData['amount'], 'BRL');
 
         // 1. Calcula a taxa ANTES de tudo, usando o service injetado.
         // $feeData = $this->feeService->calculateTransactionFee($user, $amountToWithdraw, 'OUT');
@@ -109,14 +110,14 @@ class WithdrawService
 
 
         // 2. Calcula o valor total a ser debitado da conta do usuário.
-        $totalDebitAmount = $amountToWithdraw + $fee;
+        $totalDebitAmount = $amountToWithdraw->plus($fee);
 
 
 
 
         // 3. Verifica se o saldo disponível cobre o débito total.
-        if ($account->total_available_balance < $totalDebitAmount) {
-            $this->logAction($user, self::ACTION_WITHDRAW_INSUFFICIENT_FUNDS, ['requested_total' => $totalDebitAmount, 'available' => $account->total_available_balance]);
+        if ($account->total_available_balance->isLessThan($totalDebitAmount)) {
+            $this->logAction($user, self::ACTION_WITHDRAW_INSUFFICIENT_FUNDS, ['requested_total' => $totalDebitAmount->getAmount()->toFloat(), 'available' => $account->total_available_balance->getAmount()->toFloat()]);
             return ['success' => false, 'message' => 'Total available balance is insufficient to cover amount + fees.'];
         }
 
@@ -124,8 +125,8 @@ class WithdrawService
         //    Isso usa o outro método que criamos no model Account.
         $currentAcquirerBalance = $account->getCurrentAcquirerBalance();
 
-        if (!$currentAcquirerBalance || $currentAcquirerBalance->available_balance < $totalDebitAmount) {
-            $this->logAction($user, self::ACTION_WITHDRAW_INSUFFICIENT_FUNDS, ['requested_total' => $totalDebitAmount, 'available_on_current_acquirer' => $currentAcquirerBalance->available_balance ?? 0]);
+        if (!$currentAcquirerBalance || Money::of($currentAcquirerBalance->available_balance, 'BRL')->isLessThan($totalDebitAmount)) {
+            $this->logAction($user, self::ACTION_WITHDRAW_INSUFFICIENT_FUNDS, ["requested_total" => $totalDebitAmount->getAmount()->toFloat(), "available_on_current_acquirer" => $currentAcquirerBalance->available_balance ?? 0]);
             return ['success' => false, 'message' => 'Insufficient funds with the current default acquirer to perform this withdrawal.'];
         }
 
@@ -168,7 +169,7 @@ class WithdrawService
                     'description' => 'Withdrawal request initiated: ' . $payment->external_payment_id,
                 ]);
             });
-            $this->logAction($user, self::ACTION_WITHDRAW_FUNDS_BLOCKED, ['payment_id' => $payment->id, 'amount' => $totalDebitAmount]);
+            $this->logAction($user, self::ACTION_WITHDRAW_FUNDS_BLOCKED, ['payment_id' => $payment->id, 'amount' => $totalDebitAmount->getAmount()->toFloat()]);
         } catch (Exception $e) {
             $this->logAction($user, self::ACTION_WITHDRAW_DB_ERROR, ['error' => $e->getMessage()]);
             return ['success' => false, 'message' => 'Failed to lock funds.', 'error' => $e->getMessage()];
@@ -192,7 +193,7 @@ class WithdrawService
         } catch (Exception $e) {
             // Se o gateway falhar, a transação é revertida.
             $account = $user->accounts()->first();
-            $this->reverseBlockedFunds($account, $totalDebitAmount, $payment);
+            $this->reverseBlockedFunds($account, $totalDebitAmount->getAmount()->toFloat(), $payment);
             $this->logAction($user, self::ACTION_WITHDRAW_PROVIDER_FAILURE, ['error' => $e->getMessage()]);
             return ['success' => false, 'message' => 'Could not process withdrawal with payment provider.', 'error' => $e->getMessage()];
         }
@@ -201,7 +202,7 @@ class WithdrawService
     /**
      * Cria o registro de pagamento pendente.
      */
-    protected function createPendingPayment(User $user, array $data, float $fee): Payment
+    protected function createPendingPayment(User $user, array $data, Money $fee): Payment
     {
 
 
@@ -215,7 +216,7 @@ class WithdrawService
             'account_id' => $account->id ?? null,
             'external_payment_id' => $data['externalId'],
             'amount' => $data['amount'],
-            'fee' => $fee,
+            'fee' => $fee->getAmount()->toFloat(),
             'type_transaction' => 'OUT',
             'status' => 'processing',
             'provider_id' => $activeBank->id ?? null,
@@ -225,10 +226,10 @@ class WithdrawService
     /**
      * Reverte os fundos bloqueados em caso de falha externa.
      */
-    protected function reverseBlockedFunds(Account $account, float $totalDebitAmount, Payment $payment = null)
+    protected function reverseBlockedFunds(Account $account, float $totalDebitAmount, Payment $payment = null): void
     {
         $user = Auth::user();
-        $this->logAction($user, self::ACTION_WITHDRAW_FUNDS_REVERSED, ['payment_id' => $payment->id ?? null, 'amount' => $totalDebitAmount]);
+        $this->logAction($user, self::ACTION_WITHDRAW_FUNDS_REVERSED, ["payment_id" => $payment->id ?? null, "amount" => $totalDebitAmount]);
 
         DB::transaction(function () use ($account, $totalDebitAmount, $payment) {
 

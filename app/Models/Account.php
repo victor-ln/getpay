@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Bank;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Brick\Money\Money;
 
 class Account extends Model
 {
@@ -100,10 +101,9 @@ class Account extends Model
         return $this->hasMany(Balance::class, 'account_id');
     }
 
-    public function getTotalAvailableBalanceAttribute(): float
+    public function getTotalAvailableBalanceAttribute(): Money
     {
-        // Acessa o relacionamento 'balances()' da Conta
-        return $this->balances()
+        $total = $this->balances()
             // Entra no relacionamento 'bank' de cada saldo
             // [CORRIGIDO] Usamos 'bank', o nome do método que acabamos de definir no Model Balance
             ->whereHas('bank', function ($query) {
@@ -111,8 +111,9 @@ class Account extends Model
                 // [CORRIGIDO] Usando o nome da sua coluna 'active'
                 $query->where('active', true);
             })
-            // Finalmente, soma o saldo disponível
             ->sum('available_balance');
+
+        return Money::ofMinor($total * 100, 'BRL');
     }
 
     public function getCurrentAcquirerBalance(): ?Balance

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\FeeProfile;
 use Illuminate\Support\Facades\Log;
+use Brick\Money\Money;
+use Brick\Math\RoundingMode;
 
 class FeeCalculatorService
 {
@@ -12,11 +14,11 @@ class FeeCalculatorService
      * Calcula a taxa para uma determinada conta, valor e tipo de transação.
      *
      * @param Account $account A conta que está realizando a transação.
-     * @param float $transactionValue O valor da transação.
+     * @param Money $transactionValue O valor da transação.
      * @param string $transactionType O tipo de transação ('IN' ou 'OUT').
-     * @return float A taxa calculada.
+     * @return Money A taxa calculada.
      */
-    public function calculate(Account $account, float $transactionValue, string $transactionType): float
+    public function calculate(Account $account, Money $transactionValue, string $transactionType): Money
     {
         $transactionType = strtoupper($transactionType);
 
@@ -45,42 +47,42 @@ class FeeCalculatorService
 
         if (!$profile) {
             Log::warning('Nenhum perfil de taxa ativo foi encontrado para a conta: ' . $account->id);
-            return 0.00;
+            return Money::of(0, 'BRL');
         }
 
         // A partir daqui, a lógica do switch-case que já tínhamos funciona perfeitamente
         switch ($profile->calculation_type) {
             // ... (o resto do método continua igual)
             case 'SIMPLE_FIXED':
-                return (float) ($profile->fixed_fee ?? 0.00);
+                return Money::of($profile->fixed_fee ?? 0, 'BRL');
 
             case 'GREATER_OF_BASE_PERCENTAGE':
-                $baseFee = (float) ($profile->base_fee ?? 0.00);
-                $percentageFee = $profile->percentage_fee ? ($transactionValue * $profile->percentage_fee) / 100 : 0.00;
-                return max($baseFee, $percentageFee);
+                $baseFee = Money::of($profile->base_fee ?? 0, 'BRL');
+                $percentageFee = $profile->percentage_fee ? $transactionValue->multipliedBy($profile->percentage_fee)->dividedBy(100, RoundingMode::UP) : Money::of(0, 'BRL');
+                return $baseFee->isGreaterThan($percentageFee) ? $baseFee : $percentageFee;
 
             case 'TIERED':
                 $tier = $profile->tiers()
-                    ->where('min_value', '<=', $transactionValue)
+                    ->where('min_value', '<=', $transactionValue->getAmount()->toFloat())
                     ->where(function ($query) use ($transactionValue) {
-                        $query->where('max_value', '>=', $transactionValue)
+                        $query->where('max_value', '>=', $transactionValue->getAmount()->toFloat())
                             ->orWhereNull('max_value');
                     })
                     ->orderBy('priority', 'desc')
                     ->first();
 
                 if (!$tier) {
-                    Log::warning('Nenhuma faixa de taxa encontrada para o valor ' . $transactionValue . ' no perfil ' . $profile->id);
-                    return 0.00;
+                    Log::warning('Nenhuma faixa de taxa encontrada para o valor ' . $transactionValue->getAmount()->toFloat() . ' no perfil ' . $profile->id);
+                    return Money::of(0, 'BRL');
                 }
 
-                $tierFixedFee = (float) ($tier->fixed_fee ?? 0.00);
-                $tierPercentageFee = $tier->percentage_fee ? ($transactionValue * $tier->percentage_fee) / 100 : 0.00;
-                return $tierFixedFee + $tierPercentageFee;
+                $tierFixedFee = Money::of($tier->fixed_fee ?? 0, 'BRL');
+                $tierPercentageFee = $tier->percentage_fee ? $transactionValue->multipliedBy($tier->percentage_fee)->dividedBy(100, RoundingMode::UP) : Money::of(0, 'BRL');
+                return $tierFixedFee->plus($tierPercentageFee);
 
             default:
                 Log::error('Tipo de cálculo desconhecido: ' . $profile->calculation_type);
-                return 0.00;
+                return Money::of(0, 'BRL');
         }
     }
 }
