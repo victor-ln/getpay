@@ -94,7 +94,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                //'verify' => false,
+                'verify' => false,
                 'allow_redirects' => false
             ])
                 ->withHeaders([
@@ -153,7 +153,7 @@ class OwenAcquirerService implements AcquirerInterface
 
         try {
             $response = Http::withOptions([
-                //  'verify' => false
+                'verify' => false
             ])
                 ->withHeaders([
                     'Accept' => 'application/json',
@@ -168,6 +168,11 @@ class OwenAcquirerService implements AcquirerInterface
                     'externalId' => $data['externalId'],
                     'description' => $data['description'] ?? 'Description in pix transaction',
                 ]);
+
+            Log::info('Owen create withdraw response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
 
 
@@ -218,7 +223,7 @@ class OwenAcquirerService implements AcquirerInterface
 
 
 
-            //dd($response->json());
+
 
 
             return [
@@ -256,7 +261,7 @@ class OwenAcquirerService implements AcquirerInterface
                 ])
                 ->post($this->baseUrl . "pix/in/refund/" . $data['endToEndId'], []);
 
-            // dd($response->json());
+
 
             $data = array(
                 'uuid' => $response->json()['data']['id'],

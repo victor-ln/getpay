@@ -11,6 +11,7 @@ use App\Services\Acquirers\LumenAcquirerService;
 use App\Services\Acquirers\TruztAcquirerService;
 use App\Services\Acquirers\XdpagAcquirerService;
 use App\Services\Acquirers\OwenAcquirerService;
+use App\Services\Acquirers\E2AcquirerService;
 use Exception; // Use a Exception genérica ou crie uma específica, como AcquirerNotFoundException
 
 class AcquirerResolverService
@@ -24,7 +25,8 @@ class AcquirerResolverService
         'lumenpay' => TruztAcquirerService::class,
         'truztpix' => TruztAcquirerService::class,
         'xdpag' => XdpagAcquirerService::class,
-        'owen' => OwenAcquirerService::class
+        'owen' => OwenAcquirerService::class,
+        'e2' => E2AcquirerService::class,
     ];
 
     /**

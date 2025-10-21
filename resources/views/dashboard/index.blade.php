@@ -153,6 +153,11 @@
                                     @endforeach
                                 </select>
                             </div>
+                            <div class="mb-3">
+                                <label for="pix-document" class="form-label">Document (CPF/CNPJ)</label>
+                                <input type="text" class="form-control" id="pix-document" placeholder="000.000.000-00" required>
+                                <small class="form-text text-muted">The document must match the PIX key holder (same owner)</small>
+                            </div>
                             <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#addPixKeyModal">+ Add Key</button>
                             <button type="submit" class="btn btn-primary w-100 mt-3" @if($pixKeys->isEmpty()) disabled @endif>Proceed to Confirmation</button>
                         </form>

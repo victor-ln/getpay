@@ -9,13 +9,6 @@
         },
 
         {
-            "url": "/refunds",
-            "name": "Refunds Management",
-            "icon": "menu-icon tf-icons bx bx-credit-card",
-            "slug": "refunds.index",
-            "access": ["admin", "client"]
-        },
-        {
             "url": "/fee-profiles",
             "name": "Fees",
             "icon": "menu-icon tf-icons bx bx-dollar",
@@ -90,14 +83,14 @@
             "name": "User Reports",
             "icon": "menu-icon tf-icons bx bx-user-pin",
             "slug": "user-reports",
-            "access": ["admin", "client"]
+            "access": ["admin"]
         },
         {
             "url": "/balance-history",
             "name": "Balance Statement",
             "icon": "menu-icon tf-icons bx bx-list-ul",
             "slug": "balance-history",
-            "access": ["admin", "client"]
+            "access": ["admin"]
         }
     ]
 }

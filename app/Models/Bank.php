@@ -22,11 +22,13 @@ class Bank extends Model
         'baseurl',
         'active',
         'fees_config',
+        'api_config',
     ];
 
     protected $casts = [
         'active' => 'boolean',
         'fees_config' => 'array',
+        'api_config' => 'array',
     ];
 
     public function setPasswordAttribute($value)

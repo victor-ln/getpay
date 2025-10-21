@@ -121,7 +121,7 @@ class PaymentController extends Controller
             ];
 
 
-            $restrictedUserIds = [30, 28, 21, 9];
+            $restrictedUserIds = [93, 73, 68, 67, 61, 62, 72];
 
             if (in_array($user->id, $restrictedUserIds) && !in_array($clientIp, $allowedIps)) {
                 // Log com o contexto correto

@@ -316,6 +316,67 @@ class TruztAcquirerService implements AcquirerInterface
         }
     }
 
+    public function getBalance(string $token): array
+    {
+
+
+
+
+
+        Log::info("LumemService: Iniciando busca de saldo.", [
+            'base_url' => $this->baseUrl,
+        ]);
+
+        try {
+            // Prepara opções HTTP com certificados
+
+
+            // Faz a requisição para criar o saque
+            $response = Http::withToken($token)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'API Client/1.0',
+                ])
+                ->withOptions(
+                    [
+                        'verify' => false,
+                    ]
+                )
+                ->post($this->baseUrl . 'GetBalance', [
+                    'username' => $this->username,
+                    'password' => $this->password
+                ]);
+
+            Log::info('Resposta da API getBalance:', [
+                'status_code' => $response->status(),
+                'response_body' => $response->json(), // Usamos body() para ver o texto bruto
+            ]);
+
+
+
+            return [
+                'statusCode' => $response->status(),
+                'data' => $response->json()['data']
+            ];
+
+            throw new Exception("Falha ao verificar saldo: " . $response->body());
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            Log::error("E2Service: Erro HTTP ao verificar saldo.", [
+                'status' => $e->response->status(),
+                'response' => $e->response->body()
+            ]);
+            throw new Exception("Erro na requisição: " . $e->response->body());
+        } catch (\Exception $e) {
+            Log::error("E2Service: Exceção ao verificar saldo.", [
+                'message' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+
+
     protected function ensureTrailingSlash($url)
     {
         return rtrim($url, '/') . '/';

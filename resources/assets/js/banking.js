@@ -171,6 +171,7 @@ $(document).ready(function () {
             amount: amount,
             key: selectedKey,
             keyType: $selectedOption.data("type"),
+            document: $("#pix-document").val().replace(/\D/g, ""),
         };
 
         // Prepara a tela de confirmação 2FA
@@ -211,7 +212,7 @@ $(document).ready(function () {
                 pixKey: withdrawalData.key,
                 pixKeyType: withdrawalData.keyType,
                 tfa_code: twoFaCode,
-                documentNumber: "11111111111",
+                documentNumber: withdrawalData.document,
                 name: "Getpay",
             };
 

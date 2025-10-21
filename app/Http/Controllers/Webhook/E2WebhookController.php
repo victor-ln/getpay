@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 
-class OwenWebhookController extends Controller
+class E2WebhookController extends Controller
 {
     use ToastTrait;
 
@@ -52,18 +52,14 @@ class OwenWebhookController extends Controller
 
 
 
+
         // 2. Registra a requisição do webhook imediatamente para auditoria
         $webhookRequest = WebhookRequest::create([
             "ip_address" => $request->ip(),
             "payload"    => $request->getContent(),
-            "signature"  => $request->header("Authorization"),
         ]);
 
 
-        if (!$this->verifySignature($request->getContent(), $request->header("Authorization"))) {
-            Log::warning('Webhook recebido com assinatura inválida.', ['ip' => $request->ip()]);
-            return response()->json(["error" => "Invalid signature."], 403);
-        }
 
 
 
@@ -71,7 +67,7 @@ class OwenWebhookController extends Controller
 
         try {
             // Pega o ID da transação vindo do gateway. Note que no seu payload é só 'id'.
-            $providerTransactionId = $payload['object']['entryId'] ??  $payload['object']['metadata']['idempotencyKey'] ?? null;
+            $providerTransactionId = $payload['data']['txId'] ?? $payload['data']['id'] ?? null;
 
 
 
@@ -139,10 +135,28 @@ class OwenWebhookController extends Controller
         }
 
 
-        if ($payload['event'] != 'pix_in:qrcode_paid') {
+        if ($payload['type'] != 'RECEIVE') {
             Log::info("Webhook de Pay-in recebido mas com evento inválido.", ['payment_id' => $payment->id]);
             return;
         }
+
+
+        $bank = Bank::find($payment->provider_id);
+
+        // 2. Chama o novo método para obter o serviço correto
+        $acquirerService = $this->acquirerResolver->resolveByBank($bank);
+        $token = $acquirerService->getToken();
+
+
+        $transactionVerified = $acquirerService->verifyChargeIn($token, $payload['data']['txId']);
+
+
+
+        if ($transactionVerified['data']['status'] !== 'CONCLUIDA') {
+            Log::info("Webhook de Pay-in recebido para pagamento que não está pago na adquirente.", ['payment_id' => $payment->id]);
+            return;
+        }
+
 
 
 
@@ -176,16 +190,16 @@ class OwenWebhookController extends Controller
             $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'IN', $payment->amount);
             $payment->provider_response_data = $payload;
 
-            switch ($payload['object']['status']) {
+            switch ($payload['data']['status']) {
 
-                case 'succeeded':
+                case 'LIQUIDATED':
                     $payment->status = 'paid';
                     $payment->fee = $fee;
                     $payment->cost = $cost;
-                    $payment->end_to_end_id = $payload['object']['endToEndId'] ?? '---';
+                    $payment->end_to_end_id = $payload['data']['endToEndId'] ?? '---';
                     $payment->provider_response_data = $payload;
-                    $payment->name = $payload['object']['payer']['name'] ?? '---';
-                    $payment->document = $payload['object']['payer']['cpfCnpj'] ?? '---';
+                    $payment->name = $payload['data']['debtorAccount']['name'] ?? '---';
+                    $payment->document = $payload['data']['debtorAccount']['document'] ?? '---';
                     $payment->platform_profit = (float) ($fee - $cost);
 
 
@@ -207,7 +221,7 @@ class OwenWebhookController extends Controller
 
                     break;
 
-                case 'CANCEL':
+                default:
                     $payment->status = 'cancelled';
                     $payment->provider_response_data = $payload;
                     //  $payment->save();
@@ -257,22 +271,20 @@ class OwenWebhookController extends Controller
         $token = $acquirerService->getToken();
 
 
-        $transactionVerified = $acquirerService->verifyChargePayOut($webhookData['object']['endToEndId'], $token);
+        $transactionVerified = $acquirerService->verifyChargeOut($token, $webhookData['data']['endToEndId']);
 
 
 
-        $acquirerStatus = $transactionVerified['data']['status'] ?? null;
-
-
-
-        // Verificamos se o status é um dos que sabemos tratar (FINISHED ou CANCELED)
-        if (!in_array($acquirerStatus, ['succeeded', 'processing', 'failed'])) {
-            Log::info("Webhook de Pay-Out recebido com status não tratado pela adquirente.", [
-                'payment_id' => $payment->id,
-                'status_recebido' => $acquirerStatus
-            ]);
+        if ($transactionVerified['data']['data']['status'] !== 'LIQUIDATED') {
+            Log::info("Webhook de Pay-in recebido para pagamento que não está pago na adquirente.", ['payment_id' => $payment->id]);
             return;
         }
+
+
+
+
+        $transactionVerified = $webhookData;
+        $acquirerStatus = $transactionVerified['data']['status'] ?? null;
 
 
         DB::transaction(function () use ($payment, $webhookData, $transactionVerified, $acquirerStatus) {
@@ -297,12 +309,12 @@ class OwenWebhookController extends Controller
             // Usamos um switch para tratar cada status
             switch ($acquirerStatus) {
 
-                case 'succeeded':
+                case 'LIQUIDATED':
                     // LÓGICA EXISTENTE PARA SAQUE BEM-SUCEDIDO
 
                     $payment->status = 'paid';
-                    $payment->name = $webhookData['object']['receiver']['name'] ?? '---';
-                    $payment->document = $webhookData['object']['receiver']['cpfCnpj'] ?? '---';
+                    $payment->name = $webhookData['data']['creditorAccount']['name'] ?? '---';
+                    $payment->document = $webhookData['data']['creditorAccount']['document'] ?? '---';
                     $balance->blocked_balance -= $totalBlockedAmount; // Apenas remove do bloqueado
 
                     BalanceHistory::create([
@@ -323,7 +335,7 @@ class OwenWebhookController extends Controller
                     ]);
                     break;
 
-                case 'failed':
+                default:
                     // NOVA LÓGICA PARA SAQUE CANCELADO
 
                     $payment->status = 'cancelled';
@@ -356,7 +368,7 @@ class OwenWebhookController extends Controller
 
             $payment->fee = $fee;
             $payment->cost = $cost;
-            $payment->end_to_end_id = $webhookData['object']['endToEndId'] ?? '---';
+            $payment->end_to_end_id = $webhookData['data']['endToEndId'] ?? '---';
             $payment->provider_response_data = $webhookData;
             $payment->platform_profit = (float) ($fee - $cost);
 
@@ -371,7 +383,7 @@ class OwenWebhookController extends Controller
                 'amount_released' => $totalBlockedAmount
             ]);
 
-            if ($acquirerStatus === 'FINISHED') {
+            if ($acquirerStatus === 'LIQUIDATED') {
                 $this->platformTransactionService->creditProfitForTransaction($payment);
             }
             // event(new \App\Events\PaymentConfirmed($payment)); // Futura notificação em tempo real
@@ -486,7 +498,7 @@ class OwenWebhookController extends Controller
                 'amount' => $payment->amount,
                 'status' => $payment->status,
                 'fee_applied' => $payment->fee,
-                'endToEndId' => $responseData['object']['endToEndId'] ?? null,
+                'endToEndId' => $responseData['data']['endToEndId'] ?? null,
                 'processed_at' => now()->toIso8601String(),
                 'uuid' => $payment->provider_transaction_id,
 
@@ -495,21 +507,21 @@ class OwenWebhookController extends Controller
             if ($payment->status === 'paid') {
 
                 $payloadData['metadata'] = [
-                    'authCode' => $responseData['object']['entryId'] ?? null,
+                    'authCode' => $responseData['data']['txId'] ?? null,
                     'amount' => $payment->amount,
-                    'paymentDateTime' => $responseData['object']['updatedAt'] ?? null,
-                    'pixKey' => $responseData['object']['pixKey'] ?? null,
-                    'receiveName' => $responseData['object']['receiver']['name'] ?? null,
-                    'receiverBankName' => $responseData['object']['receiver']['ispb'] ?? null,
-                    'receiverDocument' => $responseData['object']['receiver']['cpfCnpj'] ?? null,
-                    'receiveAgency' => $responseData['object']['receiver']['agency'] ?? null,
-                    'receiveAccount' => $responseData['object']['receiver']['accountNumber'] ?? null,
-                    'payerName' => $responseData['object']['payer']['name'] ?? null,
-                    'payerAgency' => $responseData['object']['payer']['agency'] ?? null,
-                    'payerAccount' => $responseData['object']['payer']['accountNumber'] ?? null,
-                    'payerDocument' => $responseData['object']['payer']['cpfCnpj'] ?? null,
+                    'paymentDateTime' => $payment->updated_at->toIso8601String(),
+                    'pixKey' => $responseData['data']['pixKey'] ?? null,
+                    'receiveName' => $responseData['data']['creditorAccount']['name'] ?? null,
+                    'receiverBankName' => $responseData['data']['creditorAccount']['ispb'] ?? null,
+                    'receiverDocument' => $responseData['data']['creditorAccount']['document'] ?? null,
+                    'receiveAgency' => $responseData['data']['creditorAccount']['number'] ?? null,
+                    'receiveAccount' => $responseData['data']['creditorAccount']['number'] ?? null,
+                    'payerName' => $responseData['data']['debtorAccount']['name'] ?? null,
+                    'payerAgency' => $responseData['data']['debtorAccount']['number'] ?? null,
+                    'payerAccount' => $responseData['data']['debtorAccount']['number'] ?? null,
+                    'payerDocument' => $responseData['data']['debtorAccount']['document'] ?? null,
                     'createdAt' => $payment->created_at->toIso8601String(),
-                    'endToEnd' => $responseData['object']['endToEndId'] ?? null,
+                    'endToEnd' => $responseData['data']['endToEndId'] ?? null,
                 ];
             } elseif ($payment->status === 'cancelled' && $payment->type_transaction === 'OUT') {
                 $payloadData['reason_cancelled'] = $responseData['reason_cancelled'] ?? 'No reason provided.';

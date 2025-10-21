@@ -15,6 +15,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use PragmaRX\Google2FA\Google2FA;
+use App\Rules\ValidDocument;
 
 class PaymentService
 {
@@ -45,10 +46,7 @@ class PaymentService
     public function processPayment(array $data)
     {
 
-        // Use um ID único para rastrear esta requisição específica nos logs
-        $traceId = \Illuminate\Support\Str::uuid()->toString();
-        Log::info("[TRACE:{$traceId}] --- INÍCIO DO PROCESSAMENTO ---");
-        $T0 = microtime(true); // Tempo inicial
+
 
         $user = Auth::user();
 
@@ -79,20 +77,23 @@ class PaymentService
         $maxAmount = max(0.01, (float) $maxAccount);
 
 
-        $data['document'] = (string) $data['document'];
 
-        // Validate input data
+
+        $documentRule = new ValidDocument();
+
+
         $validator = Validator::make($data, [
             'externalId' => 'required|string|unique:payments,external_payment_id',
             'amount' => 'required|numeric|min:' . $effectiveMinAmount . '|max:' . $maxAmount,
-            'document' => 'required',
+            'document' => ['required', $documentRule],
             'name' => 'required|string',
             'identification' => 'nullable|string',
             'expire' => 'nullable|integer',
             'description' => 'nullable|string'
         ]);
 
-
+        $data['document'] = (string) $data['document'];
+        $data['document'] = preg_replace('/[^0-9]/', '', $data['document']);
 
 
 
@@ -108,34 +109,12 @@ class PaymentService
             ];
         }
 
-        $T1 = microtime(true);
-        Log::info("[TRACE:{$traceId}] Validação concluída em: " . round(($T1 - $T0) * 1000) . "ms");
 
 
 
         $acquirerService = $this->acquirerResolver->resolveAcquirerService($account);
-
-
-
-
-
-
-
-        // --- Medindo o GARGALO #1 ---
-        Log::info("[TRACE:{$traceId}] Solicitando token da adquirente...");
-        $T2 = microtime(true);
-
-
-
         // Get token
         $token = $acquirerService->getToken();
-
-
-
-        $T3 = microtime(true);
-        Log::info("[TRACE:{$traceId}] Token recebido. Duração da chamada do token: " . round(($T3 - $T2) * 1000) . "ms");
-
-
 
 
         if (!$token) {
@@ -152,19 +131,10 @@ class PaymentService
         }
 
 
-        // --- Medindo o GARGALO #2 ---
-        Log::info("[TRACE:{$traceId}] Criando cobrança na adquirente...");
-        $T4 = microtime(true);
+
 
         // Create charge
         $response = $acquirerService->createCharge($data, $token);
-
-        $T5 = microtime(true);
-        Log::info("[TRACE:{$traceId}] Resposta da cobrança recebida. Duração da chamada de criação: " . round(($T5 - $T4) * 1000) . "ms");
-
-        // --- Medindo o GARGALO #3 ---
-        Log::info("[TRACE:{$traceId}] Salvando no banco de dados...");
-        $T6 = microtime(true);
 
 
 
@@ -177,13 +147,6 @@ class PaymentService
         if ($response['statusCode'] === 200 || $response['statusCode'] === 201) {
             // Save payment to database
             $save =  $this->savePayment($data, $response);
-
-            $T7 = microtime(true);
-            Log::info("[TRACE:{$traceId}] Salvo no banco de dados. Duração: " . round(($T7 - $T6) * 1000) . "ms");
-
-            $T_FINAL = microtime(true);
-            Log::info("[TRACE:{$traceId}] --- FIM DO PROCESSAMENTO. Tempo total: " . round(($T_FINAL - $T0) * 1000) . "ms ---");
-
 
 
             return [

@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Validator;
 use PragmaRX\Google2FA\Google2FA;
 use App\Traits\ValidatesTwoFactorAuthentication;
 use Illuminate\Support\Facades\Auth;
+use App\Rules\ValidPhone;
+use App\Rules\ValidDocument;
 
 class WithdrawService
 {
@@ -64,18 +66,17 @@ class WithdrawService
 
         $this->logAction($user, self::ACTION_WITHDRAW_INITIATED, ['request_data' => $data]);
 
-        $traceId = \Illuminate\Support\Str::uuid()->toString();
-        Log::info("[TRACE:{$traceId}] --- INÍCIO DO PROCESSAMENTO ---");
-        $T1 = microtime(true); // Tempo inicial
 
         $data['pixKeyType'] = strtoupper($data['pixKeyType']);
+
+
 
         $validator = Validator::make($data, [
             'externalId'     => 'required|string|unique:payments,external_payment_id',
             'pixKey'         => 'required|string|max:255',
             'pixKeyType'     => 'required|string|max:255',
             'name'           => 'required|string|max:255',
-            'documentNumber' => 'required|string|min:11',
+            'documentNumber' => ['required', new ValidDocument()],
             'amount'         => 'required|numeric|min:1.00',
             'tfa_code' => $skipTwoFactorCheck ? 'nullable|string' : 'required|string|digits:6',
         ]);
@@ -83,6 +84,11 @@ class WithdrawService
         if ($validator->fails()) {
             return ['success' => false, 'message' => 'Validation failed', 'errors' => $validator->errors()];
         }
+
+        $data['documentNumber'] = (string) $data['documentNumber'];
+        $data['documentNumber'] = preg_replace('/[^0-9]/', '', $data['documentNumber']);
+
+
 
         $validatedData = $validator->validated();
 
@@ -97,9 +103,6 @@ class WithdrawService
 
         $amountToWithdraw = (float) $validatedData['amount'];
 
-        // 1. Calcula a taxa ANTES de tudo, usando o service injetado.
-        // $feeData = $this->feeService->calculateTransactionFee($user, $amountToWithdraw, 'OUT');
-        // $fee = (float) $feeData['applied_fee'];
 
         $account = $user->accounts()->first();
         $fee = $this->feeCalculatorService->calculate($account, $amountToWithdraw, 'OUT');
@@ -136,8 +139,7 @@ class WithdrawService
 
         // 4. Bloqueia os fundos e cria o registro de pagamento de forma atômica.
         try {
-            Log::info("[TRACE:{$traceId}] Salvando no banco de dados...");
-            $T2 = microtime(true);
+
 
             DB::transaction(function () use ($user, $amountToWithdraw, $fee, $totalDebitAmount, $validatedData, &$payment) {
 
@@ -174,8 +176,6 @@ class WithdrawService
             return ['success' => false, 'message' => 'Failed to lock funds.', 'error' => $e->getMessage()];
         }
 
-        $T3 = microtime(true);
-        Log::info("[TRACE:{$traceId}] Aguardando resposta do gateway... Duração para salvar no DB: " . round(($T3 - $T2) * 1000) . "ms");
 
 
         // 5. Se tudo correu bem até aqui, contata o gateway de pagamento externo.

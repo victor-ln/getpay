@@ -8,6 +8,13 @@
 
 @section('content')
 
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible" role="alert">
+    <strong>Erro:</strong> {{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
 <div class="nav-align-top">
     <ul class="nav nav-pills flex-column flex-md-row mb-6">
         <li class="nav-item"><a class="nav-link active" href="javascript:void(0);"><i
@@ -22,9 +29,13 @@
 
     <div class="card-body">
         @if(isset($bank))
-        {!! Form::model($bank, ['route' => ['banks.update', $bank->id], 'method' => 'PATCH']) !!}
+        {!! Form::model($bank, [
+        'route' => ['banks.update', $bank->id],
+        'method' => 'PATCH',
+        'files' => true // IMPORTANTE: permite upload de arquivos
+        ]) !!}
         @else
-        {!! Form::open(['route' => 'banks.store']) !!}
+        {!! Form::open(['route' => 'banks.store', 'files' => true]) !!}
         @endif
 
         {{-- Seção de Dados do Banco --}}
@@ -112,7 +123,7 @@
         {{-- ========================================================== --}}
         {{-- Seção de Fees  --}}
         {{-- ========================================================== --}}
-        <hr class="my-4">
+
         <h5 class="card-header" style="padding-left: 0; padding-bottom: 1.5rem;">Fees Configuration</h5>
         <p class="text-muted" style="margin-top: -1rem; margin-bottom: 1.5rem;">Set the fees your platform will charge for transactions processed by this acquirer. The fixed fee takes precedence over the others.</p>
 
@@ -167,6 +178,112 @@
                         @error('fees.withdrawal.minimum') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                     </div>
                 </div>
+            </div>
+        </div>
+
+        {{-- ====================================================== --}}
+        {{-- ✅ [NOVA SEÇÃO] FORMULÁRIO DE CONFIGURAÇÃO AVANÇADA --}}
+        {{-- ====================================================== --}}
+        <hr class="my-4">
+        <h5 class="mb-1">Configuração de API Avançada</h5>
+        <p class="text-muted mb-4">Preencha esta secção para bancos com múltiplas APIs (como o E2). Para bancos simples, pode deixar estes campos em branco.</p>
+
+        {{-- Um campo escondido para dizer ao controller que estes dados devem ser processados --}}
+        <input type="hidden" name="is_advanced_config" value="1">
+
+        {{-- SEÇÃO DE PAY IN --}}
+        <div class="row g-3 p-3 mb-3 border rounded">
+            <h6 class="text-success"><i class="bx bx-down-arrow-circle me-2"></i>Configurações de Pay In</h6>
+            <div class="col-12">
+                <label class="form-label">URL Base (Pay In)</label>
+                <input type="text" name="pay_in_base_url" class="form-control" value="{{ old('pay_in_base_url', $bank->api_config['pay_in']['base_url'] ?? '') }}">
+            </div>
+            {{-- Credenciais Pay In --}}
+            <div class="col-md-6">
+                <label class="form-label">Client ID (Pay In)</label>
+                <input type="text" name="pay_in_client_id" class="form-control" value="{{ old('pay_in_client_id', $bank->api_config['pay_in']['credentials']['client_id'] ?? '') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Client Secret (Pay In)</label>
+                <input type="password" name="pay_in_client_secret" class="form-control" placeholder="Deixe em branco para não alterar">
+            </div>
+            {{-- Certificados Pay In --}}
+            <div class="col-md-4">
+                <label class="form-label">Certificate (.crt)</label>
+                <input type="file" name="pay_in_cert_crt" class="form-control">
+                @if(isset($bank) && isset($bank->api_config['pay_in']['certificate']['crt']))
+                <small class="form-text text-muted">Atual: {{ Str::afterLast($bank->api_config['pay_in']['certificate']['crt'], '/') }}</small>
+                @endif
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Key Certificate (.key)</label>
+                <input type="file" name="pay_in_cert_key" class="form-control">
+                @if(isset($bank) && isset($bank->api_config['pay_in']['certificate']['key']))
+                <small class="form-text text-muted">Atual: {{ Str::afterLast($bank->api_config['pay_in']['certificate']['key'], '/') }}</small>
+                @endif
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">PFX Certificate(.pfx)</label>
+                <input type="file" name="pay_in_cert_pfx" class="form-control">
+                @if(isset($bank) && isset($bank->api_config['pay_in']['certificate']['pfx']))
+                <small class="form-text text-muted">Atual: {{ Str::afterLast($bank->api_config['pay_in']['certificate']['pfx'], '/') }}</small>
+                @endif
+            </div>
+            <div class="col-6">
+                <label class="form-label">Password of Certificate (Pay In)</label>
+                <input type="password" name="pay_in_cert_pass" class="form-control" placeholder="Deixe em branco para não alterar">
+            </div>
+
+            <div class="col-6 ">
+                <label class="form-label">PIX Key</label>
+                <input type="text" name="pay_in_pix_key" class="form-control"
+                    value="{{ old('pay_in_pix_key', $bank->api_config['pay_in']['pix_key'] ?? '') }}"
+                    placeholder="Chave PIX da sua conta nesta liquidante">
+                <div class="form-text text-warning">This is the PIX key that will be used to generate PIX charges for our customers.</div>
+            </div>
+        </div>
+
+        {{-- SEÇÃO DE PAY OUT --}}
+        <div class="row g-3 p-3 border rounded">
+            <h6 class="text-danger"><i class="bx bx-up-arrow-circle me-2"></i>Configurações de Pay Out</h6>
+            <div class="col-12">
+                <label class="form-label">URL Base (Pay Out)</label>
+                <input type="text" name="pay_out_base_url" class="form-control" value="{{ old('pay_out_base_url', $bank->api_config['pay_out']['base_url'] ?? '') }}">
+            </div>
+            {{-- Credenciais Pay In --}}
+            <div class="col-md-6">
+                <label class="form-label">Client ID (Pay Out)</label>
+                <input type="text" name="pay_out_client_id" class="form-control" value="{{ old('pay_out_client_id', $bank->api_config['pay_out']['credentials']['client_id'] ?? '') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Client Secret (Pay Out)</label>
+                <input type="password" name="pay_out_client_secret" class="form-control" placeholder="Deixe em branco para não alterar">
+            </div>
+            {{-- Certificados Pay In --}}
+            <div class="col-md-4">
+                <label class="form-label">Certificate (.crt)</label>
+                <input type="file" name="pay_out_cert_crt" class="form-control">
+                @if(isset($bank) && isset($bank->api_config['pay_out']['certificate']['crt']))
+                <small class="form-text text-muted">Atual: {{ Str::afterLast($bank->api_config['pay_out']['certificate']['crt'], '/') }}</small>
+                @endif
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Certificate key (.key)</label>
+                <input type="file" name="pay_out_cert_key" class="form-control">
+                @if(isset($bank) && isset($bank->api_config['pay_out']['certificate']['key']))
+                <small class="form-text text-muted">Atual: {{ Str::afterLast($bank->api_config['pay_out']['certificate']['key'], '/') }}</small>
+                @endif
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Certificate personal (.pfx)</label>
+                <input type="file" name="pay_out_cert_pfx" class="form-control">
+                @if(isset($bank) && isset($bank->api_config['pay_out']['certificate']['pfx']))
+                <small class="form-text text-muted">Atual: {{ Str::afterLast($bank->api_config['pay_out']['certificate']['pfx'], '/') }}</small>
+                @endif
+            </div>
+            <div class="col-12">
+                <label class="form-label">Password of Certificate (Pay Out)</label>
+                <input type="password" name="pay_out_cert_pass" class="form-control" placeholder="Deixe em branco para não alterar">
             </div>
         </div>
 
