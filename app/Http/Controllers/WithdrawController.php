@@ -38,7 +38,7 @@ class WithdrawController extends Controller
             ];
 
 
-            $restrictedUserIds = [93, 73, 68, 67, 61, 62, 72];
+            $restrictedUserIds = [];
 
             if (in_array($user->id, $restrictedUserIds) && !in_array($clientIp, $allowedIps)) {
                 // Log com o contexto correto

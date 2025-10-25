@@ -387,7 +387,7 @@ class E2AcquirerService
             $body = [
                 // O calendário define a expiração do PIX em segundos
                 'calendario' => [
-                    'expiracao' => 3600 // Exemplo: 1 hora de expiração
+                    'expiracao' => $data['expire'] ?? 3600 // Exemplo: 1 hora de expiração
                 ],
 
                 // Dados do devedor (quem vai pagar o PIX)
@@ -416,10 +416,6 @@ class E2AcquirerService
                     [
                         'nome' => 'Atenção!',
                         'valor' => 'Ao realizar o pagamento você concorda com os termos.'
-                    ],
-                    [
-                        'nome' => 'ID Externo',
-                        'valor' => $data['externalId'] ?? ''
                     ]
                 ]
             ];

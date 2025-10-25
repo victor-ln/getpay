@@ -31,20 +31,11 @@ else
     echo "AVISO: Arquivo de configuração 'default' do Nginx não encontrado. Usando configuração padrão do Azure."
 fi
 
-# Para qualquer worker antigo antes de iniciar um novo
-echo "Parando workers antigos..."
-pkill -f "queue:work" || true
 
-# Inicia o queue worker em background
-echo "Iniciando queue worker..."
-nohup php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600 --timeout=60 > /home/site/wwwroot/storage/logs/queue-worker.log 2>&1 &
-
-# Salva o PID do processo
-echo $! > /home/site/wwwroot/storage/queue-worker.pid
-
-echo "Script de inicialização concluído com sucesso."
-echo "Queue worker iniciado com PID: $(cat /home/site/wwwroot/storage/queue-worker.pid)"
 
 
 
 echo "Script de inicialização concluído com sucesso."
+
+
+#php artisan queue:work redis --tries=3 -vvv
