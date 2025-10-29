@@ -159,20 +159,61 @@ $(document).ready(function () {
         );
 
         // Validações
-        if (!selectedKey)
-            return showToast("Select a key to withdraw from.", "warning");
+
         if (isNaN(amount) || amount <= 0)
             return showToast("Invalid amount.", "warning");
         if (amount > availableBalance)
             return showToast("Insufficient available balance.", "danger");
 
+        // 1. Verifica qual opção de método de pagamento está selecionada
+        const isManual = document.getElementById("useManualKey").checked;
+
+        if (isManual) {
+            // 2a. Pega os dados dos campos manuais
+            const manualKey = document.getElementById(
+                "manual-pix-key-value",
+            ).value;
+            const manualType = document.getElementById(
+                "manual-pix-key-type",
+            ).value;
+
+            // 3a. Validação básica (pode adicionar mais se necessário)
+            if (!manualKey || !manualType) {
+                alert("Please fill in the manual PIX key and type.");
+                return; // Para a execução se os campos manuais estiverem vazios
+            }
+
+            withdrawalData = {
+                amount: amount,
+                key: manualKey,
+                keyType: manualType,
+                document: $("#pix-document").val().replace(/\D/g, ""),
+            };
+        } else {
+            // 2b. Pega os dados do select de chaves registadas
+            const pixKeySelect = document.getElementById("pix-key-select");
+            const selectedOption =
+                pixKeySelect.options[pixKeySelect.selectedIndex];
+
+            // 3b. Validação básica
+            if (!selectedOption || !selectedOption.value) {
+                alert("Please select a registered PIX key.");
+                return; // Para a execução se nenhuma chave estiver selecionada
+            }
+
+            // A variável $selectedOption parece ser jQuery, vamos adaptar para JS puro
+            // const selectedKey = selectedOption.value;
+            // const selectedType = selectedOption.dataset.type; // Usando dataset
+
+            withdrawalData = {
+                amount: amount,
+                key: selectedOption.value,
+                keyType: selectedOption.dataset.type,
+                document: $("#pix-document").val().replace(/\D/g, ""),
+            };
+        }
+
         // Guarda os dados para o próximo passo
-        withdrawalData = {
-            amount: amount,
-            key: selectedKey,
-            keyType: $selectedOption.data("type"),
-            document: $("#pix-document").val().replace(/\D/g, ""),
-        };
 
         // Prepara a tela de confirmação 2FA
         $("#confirmation-summary").html(
@@ -215,6 +256,8 @@ $(document).ready(function () {
                 documentNumber: withdrawalData.document,
                 name: "Getpay",
             };
+
+            console.log("Enviando payload para /request-payout:", payload);
 
             await axios.post("/request-payout", payload);
 

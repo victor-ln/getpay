@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class WebhookController extends Controller
 {
@@ -711,5 +712,68 @@ class WebhookController extends Controller
             'success' => true,
             'message' => 'Webhook deleted successfully!'
         ]);
+    }
+
+
+    public function batchVerifyStatus(Request $request)
+    {
+        // 1. Valida se recebemos um array de IDs
+        $validator = Validator::make($request->all(), [
+            'transaction_ids' => 'required|array',
+            'transaction_ids.*' => 'required|string', // Garante que cada item no array é uma string
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 400);
+        }
+
+        $providerTransactionIds = $request->input('transaction_ids');
+        $results = [];
+
+        // 2. Busca os pagamentos correspondentes no nosso sistema
+        // Usamos 'whereIn' para buscar todos de uma vez
+        $payments = Payment::whereIn('provider_transaction_id', $providerTransactionIds)->get()->keyBy('provider_transaction_id');
+
+        // 3. Itera sobre os IDs recebidos para verificar cada um
+        foreach ($providerTransactionIds as $providerId) {
+            //$payment = $payments->get($providerId);
+            $payment = $providerId;
+            if (!$payment) {
+                $results[$providerId] = ['status' => 'NOT_FOUND_IN_DB', 'error' => 'Transaction not found in our system.'];
+                continue;
+            }
+
+            // Não verifica novamente se já estiver num estado final no nosso sistema
+            // if (in_array($payment->status, ['paid', 'failed', 'cancelled'])) {
+            //     $results[$providerId] = ['status' => 'ALREADY_RESOLVED', 'current_status' => $payment->status];
+            //     continue;
+            // }
+
+            try {
+                //$bank = Bank::find($payment->provider_id);
+                $bank = Bank::find(6);
+                if (!$bank) {
+                    throw new \Exception("Bank with ID {$payment->provider_id} not found.");
+                }
+
+                $acquirerService = $this->acquirerResolver->resolveByBank($bank);
+                $token = $acquirerService->getToken();
+                $verificationResult = $acquirerService->verifyChargeIn($token, $providerId);
+
+                // Guarda o status retornado pela adquirente
+
+                if ($verificationResult['data']['status'] === 'CONCLUIDA') {
+                    $results[$providerId] = [
+                        'raw_response' => $verificationResult['data']['status']
+                    ];
+                }
+            } catch (\Exception $e) {
+                Log::error("Erro ao verificar status para provider_id {$providerId}: " . $e->getMessage());
+                $results[$providerId] = ['status' => 'ERROR', 'error' => $e->getMessage()];
+            }
+        }
+
+        // 4. Retorna os resultados como JSON
+        return response()->json(['success' => true, 'results' => $results]);
     }
 }

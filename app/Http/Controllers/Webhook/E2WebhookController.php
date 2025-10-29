@@ -224,6 +224,9 @@ class E2WebhookController extends Controller
                 default:
                     $payment->status = 'cancelled';
                     $payment->provider_response_data = $payload;
+                    $payment->fee = 0;
+                    $payment->cost = 0;
+                    $payment->platform_profit = 0;
                     //  $payment->save();
                     break;
             }
@@ -260,6 +263,10 @@ class E2WebhookController extends Controller
             return;
         }
 
+
+
+
+
         $user = \App\Models\User::find($payment->user_id);
         $account = $user->accounts()->first();
 
@@ -275,10 +282,7 @@ class E2WebhookController extends Controller
 
 
 
-        if ($transactionVerified['data']['data']['status'] !== 'LIQUIDATED') {
-            Log::info("Webhook de Pay-in recebido para pagamento que não está pago na adquirente.", ['payment_id' => $payment->id]);
-            return;
-        }
+
 
 
 
@@ -304,6 +308,10 @@ class E2WebhookController extends Controller
             $totalBlockedAmount = $payment->amount + $payment->fee;
             $balanceBefore = $balance->available_balance;
             $balanceAfter = $balanceBefore;
+
+            $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'OUT', $payment->amount);
+            $account = Account::where('id', $payment->account_id)->first();
+            $fee = $this->feeCalculatorService->calculate($account, $payment->amount, 'OUT');
 
 
             // Usamos um switch para tratar cada status
@@ -341,6 +349,8 @@ class E2WebhookController extends Controller
                     $payment->status = 'cancelled';
                     $balance->blocked_balance -= $totalBlockedAmount; // Remove do bloqueado
                     $balance->available_balance += $totalBlockedAmount; // E devolve para o disponível
+                    $cost = 0;
+                    $fee = 0;
 
                     $balanceAfter = $balance->available_balance;
                     BalanceHistory::create([
@@ -361,9 +371,7 @@ class E2WebhookController extends Controller
                     break;
             }
 
-            $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'OUT', $payment->amount);
-            $account = Account::where('id', $payment->account_id)->first();
-            $fee = $this->feeCalculatorService->calculate($account, $payment->amount, 'OUT');
+
 
 
             $payment->fee = $fee;
@@ -499,7 +507,7 @@ class E2WebhookController extends Controller
                 'status' => $payment->status,
                 'fee_applied' => $payment->fee,
                 'endToEndId' => $responseData['data']['endToEndId'] ?? null,
-                'processed_at' => now()->toIso8601String(),
+                'processed_at' => $responseData['data']['createdAt'] ?? now()->toIso8601String(),
                 'uuid' => $payment->provider_transaction_id,
 
             ];
@@ -524,7 +532,7 @@ class E2WebhookController extends Controller
                     'endToEnd' => $responseData['data']['endToEndId'] ?? null,
                 ];
             } elseif ($payment->status === 'cancelled' && $payment->type_transaction === 'OUT') {
-                $payloadData['reason_cancelled'] = $responseData['reason_cancelled'] ?? 'No reason provided.';
+                $payloadData['reason_cancelled'] = $responseData['data']['errorMessage'] ?? 'No reason provided.';
                 $payloadData['metadata'] = []; // Envia metadata vazio, como solicitado
             }
 

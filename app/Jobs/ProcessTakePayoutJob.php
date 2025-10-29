@@ -32,6 +32,10 @@ class ProcessTakePayoutJob implements ShouldQueue
 
     public function handle(PayoutTakeService $payoutTakeService): void
     {
+
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
         Log::info('🟢 JOB INICIADO', [
             'take_id' => $this->takeId,
             'source_bank_id' => $this->sourceBankId,

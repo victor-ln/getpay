@@ -24,8 +24,12 @@ class Payment extends Model
         'description',
         'name',
         'document',
+        'provider_response_data',
     ];
 
+    protected $casts = [
+        'provider_response_data' => 'array',
+    ];
 
 
     /**

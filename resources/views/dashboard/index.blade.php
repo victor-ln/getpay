@@ -17,6 +17,7 @@
 @vite('resources/assets/js/banking.js')
 @vite('resources/assets/js/metrics.js')
 @vite('resources/assets/js/dateRangeFilter.js')
+@vite('resources/assets/js/payout-form-toggle.js')
 @endsection
 
 @section('content')
@@ -142,16 +143,58 @@
                                 <label for="withdraw-amount" class="form-label">Amount</label>
                                 <input type="number" class="form-control" id="withdraw-amount" placeholder="50.00" step="0.01" required>
                             </div>
+                            {{-- Interruptor de Escolha --}}
                             <div class="mb-3">
-                                <label for="pix-key-select" class="form-label">To (Registered PIX Key)</label>
-                                <select class="form-select" id="pix-key-select" required @if($pixKeys->isEmpty()) disabled @endif>
-                                    <option value="" selected disabled>
-                                        @if($pixKeys->isEmpty()) No keys registered @else Select a key... @endif
-                                    </option>
-                                    @foreach($pixKeys as $key)
-                                    <option value="{{ $key->key }}" data-type="{{ $key->type }}">{{ $key->type }}: {{ $key->key }}</option>
-                                    @endforeach
-                                </select>
+                                <label class="form-label">Payout Method</label>
+                                <div class="d-flex">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="payoutMethodChoice" id="useRegisteredKey" value="registered" checked>
+                                        <label class="form-check-label" for="useRegisteredKey">Use Registered Key</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="payoutMethodChoice" id="useManualKey" value="manual">
+                                        <label class="form-check-label" for="useManualKey">Enter Manual Key</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Bloco 1: Chaves Registadas (O seu código original) --}}
+                            <div id="registeredKeyBlock">
+                                <div class="mb-3">
+                                    <label for="pix-key-select" class="form-label">To (Registered PIX Key)</label>
+                                    <select class="form-select" id="pix-key-select" required @if($pixKeys->isEmpty()) disabled @endif>
+                                        <option value="" selected disabled>
+                                            @if($pixKeys->isEmpty()) No keys registered @else Select a key... @endif
+                                        </option>
+                                        @foreach($pixKeys as $key)
+                                        <option value="{{ $key->key }}" data-type="{{ $key->type }}">{{ $key->type }}: {{ $key->key }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            {{-- Bloco 2: Inserção Manual (O novo formulário) --}}
+                            <div id="manualKeyBlock" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <div class="mb-3">
+                                            <label for="manual-pix-key-type" class="form-label">Manual Key Type</label>
+                                            <select class="form-select" id="manual-pix-key-type">
+                                                <option value="CPF">CPF</option>
+                                                <option value="CNPJ">CNPJ</option>
+                                                <option value="PHONE">Phone</option>
+                                                <option value="EMAIL">Email</option>
+                                                <option value="EVP">Random Key (EVP)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <div class="mb-3">
+                                            <label for="manual-pix-key-value" class="form-label">Manual PIX Key</label>
+                                            <input type="text" class="form-control" id="manual-pix-key-value" placeholder="Enter the PIX key">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label for="pix-document" class="form-label">Document (CPF/CNPJ)</label>

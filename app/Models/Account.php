@@ -22,10 +22,7 @@ class Account extends Model
     ];
 
 
-    public function users()
-    {
-        return $this->belongsToMany(User::class)->withPivot('role')->withTimestamps();
-    }
+
 
     /**
      * O sócio (partner) que indicou esta conta.
@@ -102,22 +99,28 @@ class Account extends Model
 
     public function getTotalAvailableBalanceAttribute(): float
     {
-        // Acessa o relacionamento 'balances()' da Conta
+
         return $this->balances()
-            // Entra no relacionamento 'bank' de cada saldo
-            // [CORRIGIDO] Usamos 'bank', o nome do método que acabamos de definir no Model Balance
             ->whereHas('bank', function ($query) {
-                // E filtra para pegar apenas os que estão ativos
-                // [CORRIGIDO] Usando o nome da sua coluna 'active'
+
                 $query->where('active', true);
             })
-            // Finalmente, soma o saldo disponível
+
             ->sum('available_balance');
     }
 
+
     public function getCurrentAcquirerBalance(): ?Balance
     {
-        // Retorna o registro de saldo específico do adquirente padrão da conta.
+
         return $this->balances()->where('acquirer_id', $this->acquirer_id)->first();
+    }
+
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'account_user')
+            ->withPivot('role')
+            ->withTimestamps();
     }
 }

@@ -17,36 +17,44 @@ class PaymentController extends Controller
      */
     public function getStatus(Request $request)
     {
-        // 1. Valida a requisição para garantir que o identificador foi enviado.
+        // 1. Valida a requisição
         $validated = $request->validate([
             'id' => 'required|string'
         ]);
 
         $identifier = $validated['id'];
+
+        // 2. Verifica se o usuário está autenticado ANTES de usar
         $user = Auth::user();
 
-        $accountId = $user->accounts()->first()->id;
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
 
-        if (!$accountId) {
+        // 3. Busca a conta do usuário
+        $account = $user->accounts()->first();
+
+        if (!$account) {
             return response()->json(['message' => 'Account not found.'], 404);
         }
 
-        // 3. Executa a "Busca Inteligente"
-        $payment = Payment::where('account_id', $accountId)
+        // 4. Executa a "Busca Inteligente"
+        $payment = Payment::where('account_id', $account->id)
             ->where(function ($query) use ($identifier) {
-                // Procura o identificador em QUALQUER uma das duas colunas
                 $query->where('external_payment_id', $identifier)
                     ->orWhere('provider_transaction_id', $identifier);
             })
             ->first();
 
-        // 4. Retorna a resposta
+        // 5. Retorna a resposta
         if (!$payment) {
             return response()->json(['message' => 'Transaction not found in this account.'], 404);
         }
 
         return response()->json([
             'success' => true,
+            'externalId' => $payment->external_payment_id,
+            'providerTransactionId' => $payment->provider_transaction_id,
             'status' => $payment->status,
             'type' => $payment->type_transaction,
             'amount' => $payment->amount,
@@ -78,7 +86,7 @@ class PaymentController extends Controller
 
         // 3. Constrói a query base
         $query = Payment::where('account_id', $accountId);
-        $query->where('status', 'paid'); 
+        $query->where('status', 'paid');
 
         // 4. Aplica os filtros de data
         if (isset($validated['date'])) {

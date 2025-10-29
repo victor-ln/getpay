@@ -207,6 +207,9 @@ Route::middleware('auth')->group(function () {
     // Rota para adicionar um usuário existente ou novo a uma conta
     Route::post('/accounts/{account}/users', [AccountController::class, 'addUser'])->name('accounts.users.add');
 
+    Route::post('admin/accounts/{account}/generate-api-credentials', [AccountController::class, 'generateApiCredentials'])
+        ->name('admin.accounts.generateApiCredentials');
+
 
     Route::put('/users/{user}/password', [UserController::class, 'updatePassword'])->name('users.password.update');
 
@@ -240,6 +243,9 @@ Route::middleware('auth')->group(function () {
 
     // Rota para logout
     Route::get('/logout', [AuthWebController::class, 'logout'])->name('logout');
+
+
+
 
 
     //rotas do novo modelo de fee

@@ -120,4 +120,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(Report::class);
     }
+
+    public function getRoleInAccount(Account $account): ?string
+    {
+        // Busca a relação apenas para esta conta específica
+        $accountRelation = $this->accounts()->where('account_id', $account->id)->first();
+
+        // Retorna o valor da coluna 'role' da tabela pivot
+        return $accountRelation?->pivot->role;
+    }
 }

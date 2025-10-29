@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Balance;
 use App\Models\Bank;
 use App\Models\Fee;
+use App\Models\ActivityLog;
 use App\Models\FeeProfile;
 use App\Models\User;
 use App\Traits\ToastTrait;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 class AccountController extends Controller
 {
@@ -399,5 +401,54 @@ class AccountController extends Controller
             ]);
 
         return back()->with('success', 'Fee profile has been deactivated.');
+    }
+
+    public function generateApiCredentials(Request $request, Account $account)
+    {
+
+
+        $clientId = Str::uuid()->toString();
+
+
+        $clientSecret = Str::random(40);
+
+
+        $account->forceFill([
+            'api_client_id' => $clientId,
+            'api_client_secret' => Hash::make($clientSecret),
+        ])->save();
+
+        $actor = Auth::user();
+
+
+        ActivityLog::create([
+
+            'user_id' => $actor->id,
+
+            'action' => 'API_CREDENTIALS_GENERATED',
+            'level' => 'warning',
+            'message' => "New API credentials generated for account '{$account->name}' (ID: {$account->id}).",
+
+
+            'context' => [
+                'actor_id' => $actor->id,
+                'actor_name' => $actor->name,
+                'target_account_id' => $account->id,
+                'target_account_name' => $account->name,
+                'new_client_id' => $clientId,
+            ],
+
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+
+
+        return response()->json([
+            'success' => true,
+            'message' => 'New API credentials generated successfully! The secret will only be shown once.',
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+        ]);
     }
 }

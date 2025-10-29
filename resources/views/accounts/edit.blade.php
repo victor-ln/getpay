@@ -5,7 +5,7 @@
 
 @section('page-script')
 
-@vite(['resources/assets/js/pages-account-settings-account.js', 'resources/assets/js/copy.js', 'resources/assets/js/pix-key-manager.js', 'resources/assets/js/webhook-page.js', 'resources/assets/js/account-user-manager.js', 'resources/assets/js/account-partner-manager.js'])
+@vite(['resources/assets/js/pages-account-settings-account.js', 'resources/assets/js/secret.js', 'resources/assets/js/copy.js', 'resources/assets/js/pix-key-manager.js', 'resources/assets/js/webhook-page.js', 'resources/assets/js/account-user-manager.js', 'resources/assets/js/account-partner-manager.js'])
 @endsection
 
 @section('content')
@@ -509,6 +509,62 @@
                         @else
                         <p class="text-muted mt-3">Webhook settings will be available after the account is created.</p>
                         @endisset
+
+                        {{-- ✅ [SEÇÃO API CREDENTIALS] Verifique se este bloco existe na sua view --}}
+                        <div class="card mt-4">
+                            <h5 class="card-header">API Credentials (V2)</h5>
+                            <div class="card-body">
+                                <p>Manage the Client ID and Client Secret for API V2 access. Regenerating credentials will invalidate the previous ones immediately.</p>
+
+                                {{-- Mostra o Client ID Atual --}}
+                                <div class="mb-3 row">
+                                    <label for="currentApiClientId" class="col-md-3 col-form-label">Current Client ID:</label>
+                                    <div class="col-md-9">
+                                        <input type="text" readonly class="form-control-plaintext" id="currentApiClientId" value="{{ $account->api_client_id ?? 'Not generated yet' }}">
+                                    </div>
+                                </div>
+
+                                {{-- Botão para Gerar Novas Credenciais --}}
+                                <button type="button" class="btn btn-primary" id="generateApiCredentialsBtn" data-url="{{ route('admin.accounts.generateApiCredentials', $account) }}">
+                                    Generate New Credentials
+                                </button>
+
+                                {{-- Área Para mostrar as credenciais geradas (começa escondida) --}}
+                                <div id="newCredentialsSection" class="mt-4 p-3 border rounded bg-light" style="display: none;">
+                                    <div class="alert alert-danger d-flex align-items-center" role="alert">
+                                        <i class="bx bx-error-circle me-2"></i>
+                                        <div>
+                                            <strong>Important:</strong> The Client Secret is shown only once. Copy it now and store it securely. Your previous credentials are now invalid.
+                                        </div>
+                                    </div>
+                                    {{-- Client ID com botão de copiar --}}
+                                    <div class="mb-2 row">
+                                        <label for="newApiClientId" class="col-sm-3 col-form-label">New Client ID:</label>
+                                        <div class="col-sm-9">
+                                            <div class="input-group">
+                                                <input type="text" readonly class="form-control" id="newApiClientId" value="">
+                                                <button class="btn btn-outline-secondary btn-copy" type="button" data-clipboard-target="#newApiClientId" title="Copy Client ID">
+                                                    <i class="bx bx-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {{-- Client Secret com botão de copiar --}}
+                                    <div class="row">
+                                        <label for="newApiClientSecret" class="col-sm-3 col-form-label">New Client Secret:</label>
+                                        <div class="col-sm-9">
+                                            <div class="input-group">
+                                                <input type="text" readonly class="form-control" id="newApiClientSecret" value="">
+                                                <button class="btn btn-outline-secondary btn-copy" type="button" data-clipboard-target="#newApiClientSecret" title="Copy Client Secret">
+                                                    <i class="bx bx-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {{-- Fim da área de novas credenciais --}}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
