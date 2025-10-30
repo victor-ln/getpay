@@ -52,7 +52,7 @@ class ReportPendingOwnership extends Command
         // Buscamos APENAS pagamentos que estão 'pending' E que estão na sua lista.
         Payment::where('status', 'pending')
             ->whereIn('provider_transaction_id', $paidExternalIds) // 'external_id' é o seu provider_transaction_id
-            ->select('id', 'external_id', 'account_id', 'amount', 'status') // Seleciona apenas o que precisamos
+            ->select('id', 'external_payment_id', 'account_id', 'amount', 'status') // Seleciona apenas o que precisamos
             ->chunkById(500, function ($payments) use ($outputHandle, &$foundCount) {
 
                 foreach ($payments as $payment) {
@@ -60,7 +60,7 @@ class ReportPendingOwnership extends Command
                     // Escreve a linha no nosso novo relatório CSV
                     fputcsv($outputHandle, [
                         $payment->id,
-                        $payment->external_id,
+                        $payment->external_payment_id,
                         $payment->account_id,
                         $payment->amount,
                         $payment->status

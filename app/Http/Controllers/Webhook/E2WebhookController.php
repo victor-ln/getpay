@@ -144,18 +144,18 @@ class E2WebhookController extends Controller
         $bank = Bank::find($payment->provider_id);
 
         // 2. Chama o novo método para obter o serviço correto
-        $acquirerService = $this->acquirerResolver->resolveByBank($bank);
-        $token = $acquirerService->getToken();
+        // $acquirerService = $this->acquirerResolver->resolveByBank($bank);
+        //$token = $acquirerService->getToken();
 
 
-        $transactionVerified = $acquirerService->verifyChargeIn($token, $payload['data']['txId']);
+        // $transactionVerified = $acquirerService->verifyChargeIn($token, $payload['data']['txId']);
 
 
 
-        if ($transactionVerified['data']['status'] !== 'CONCLUIDA') {
-            Log::info("Webhook de Pay-in recebido para pagamento que não está pago na adquirente.", ['payment_id' => $payment->id]);
-            return;
-        }
+        // if ($transactionVerified['data']['status'] !== 'CONCLUIDA') {
+        //     Log::info("Webhook de Pay-in recebido para pagamento que não está pago na adquirente.", ['payment_id' => $payment->id]);
+        //     return;
+        // }
 
 
 
