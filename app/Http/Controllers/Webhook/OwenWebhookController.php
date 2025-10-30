@@ -202,7 +202,7 @@ class OwenWebhookController extends Controller
                         'balance_before' => $balanceBefore,
                         'amount' => $netAmount,
                         'balance_after' => $balanceAfter,
-                        'description' => 'PIX deposit received: ' . $payment->amount . ' | Fee applied: ' . $fee . ' | id: ' . $payment->id,
+                        'description' => 'PIX deposit received: ' . $payment->amount . ' | Fee applied: ' . $payment->fee . ' | id: ' . $payment->id,
                     ]);
 
                     break;

@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SendOutgoingWebhookJob;
+use App\Jobs\SendOutgoingWebhookPendingJob;
 use Illuminate\Console\Command;
 use App\Models\Payment;
 use App\Models\Bank;
@@ -62,8 +64,8 @@ class VerifyPendingPayments extends Command
         $this->info("Iniciando verificação de pagamentos pendentes para o banco: {$bank->name}");
 
         // Define a janela de tempo (ex: entre 30 mins e 48 horas atrás)
-        $startTime = Carbon::now()->subHours(48);
-        $endTime = Carbon::now()->subMinutes(30);
+        $startTime = Carbon::now()->subHours(5);
+        $endTime = Carbon::now()->subMinutes(15);
 
         // Busca os pagamentos pendentes
         $pendingPayments = Payment::where('provider_id', $bankId)
@@ -101,18 +103,18 @@ class VerifyPendingPayments extends Command
                 $this->info("Status na adquirente: {$acquirerStatus}");
 
                 switch (strtoupper($acquirerStatus)) {
-                    case 'LIQUIDATED': // Ou 'PAID', 'COMPLETED', etc. Adapte conforme a sua adquirente
+                    case 'CONCLUIDA': // Ou 'PAID', 'COMPLETED', etc. Adapte conforme a sua adquirente
                         $this->processPaidPayment($payment, $transactionVerified);
                         $this->info("Pagamento #{$payment->id} confirmado e processado.");
                         break;
 
-                    case 'CANCELED': // Ou 'FAILED', 'EXPIRED', etc.
+                    case 'REMOVIDA_PELO_PSP': // Ou 'FAILED', 'EXPIRED', etc.
                     case 'FAILED':
                         $this->processFailedPayment($payment, $transactionVerified);
                         $this->warn("Pagamento #{$payment->id} marcado como falhado/cancelado.");
                         break;
 
-                    case 'PENDING':
+                    case 'ATIVA':
                     default:
                         // Não faz nada, continua pendente
                         $this->line("Pagamento #{$payment->id} ainda pendente na adquirente.");
@@ -141,6 +143,10 @@ class VerifyPendingPayments extends Command
             return;
         }
 
+        Log::info("Iniciando processamento do pagamento IN #{$payment->id} para 'paid'.", [
+            'transaction_verified' => $transactionVerified
+        ]);
+
         DB::transaction(function () use ($payment, $transactionVerified) {
             $balance = Balance::firstOrCreate(
                 ['account_id' => $payment->account_id, 'acquirer_id' => $payment->provider_id],
@@ -151,15 +157,18 @@ class VerifyPendingPayments extends Command
             $account = Account::find($payment->account_id);
             $fee = $this->feeCalculatorService->calculate($account, $payment->amount, 'IN');
             $netAmount = $payment->amount - $fee;
-            $cost = $this->feeService->calculateTransactionCost($payment->provider, 'IN', $payment->amount); // Assume relação 'provider' no Payment model
+            $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'IN', $payment->amount);
+
+            $data = $transactionVerified['data'] ?? [];
+            $pixData = $data['pix'][0] ?? null;
 
             $payment->status = 'paid';
             $payment->fee = $fee;
             $payment->cost = $cost;
-            $payment->end_to_end_id = $transactionVerified['data']['endToEndId'] ?? '---';
+            $payment->end_to_end_id = $pixData['endToEndId'] ?? '---';
             $payment->provider_response_data = $transactionVerified;
-            $payment->name = $transactionVerified['data']['metadata']['payerName'] ?? '---';
-            $payment->document = $transactionVerified['data']['metadata']['payerDocument'] ?? '---';
+            $payment->name = $pixData['pagador']['nome'] ?? '---';
+            $payment->document = $pixData['pagador']['cpf'] ?? $pixData['pagador']['cnpj'] ?? '---';
             $payment->platform_profit = (float) ($fee - $cost);
             $payment->save();
 
@@ -181,7 +190,7 @@ class VerifyPendingPayments extends Command
             $this->platformTransactionService->creditProfitForTransaction($payment);
 
             // Despacha o Job para enviar o webhook de saída
-            // SendOutgoingWebhookJob::dispatch($payment->account_id, $payment, $transactionVerified);
+            SendOutgoingWebhookPendingJob::dispatch($payment, $transactionVerified);
 
             Log::info("Pagamento IN #{$payment->id} reconciliado para 'paid'.");
         });

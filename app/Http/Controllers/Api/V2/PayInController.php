@@ -106,7 +106,7 @@ class PayInController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pay-in request received and is being processed.',
-            'payment_id' => $payment->id, // Retorna o ID interno para consulta futura
+            'payment_id' => $payment->external_payment_id, // Retorna o ID interno para consulta futura
             'status' => $payment->status,
         ], 202);
     }

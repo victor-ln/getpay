@@ -111,17 +111,21 @@ class SendOutgoingWebhookJob implements ShouldQueue
      */
     private function buildPayload(Payment $payment): array
     {
+
+
         $payload = [
-            'type' => $this->getWebhookType($payment), // PAYIN_PROCESSING, PAYIN_CONFIRMED, PAYIN_FAILED, etc.
-            'externalId' => $payment->external_payment_id,
-            'uuid' => $payment->provider_transaction_id,
-            'amount' => $payment->amount,
-            'status' => $payment->status, // pending, waiting_payment, paid, failed
-            'processed_at' => now()->toIso8601String(),
-            'getpay_payment_id' => $payment->id, // ID interno da GetPay
-            'provider_transaction_id' => $payment->provider_transaction_id, // ID da liquidante
-            'pix' => $payment->provider_response_data['pix'] ?? null,
-            'qrcode' => $payment->provider_response_data['pix'] ?? null,
+            'success' => true,
+            'message' => 'Payment processed successfully',
+            'data' => [
+                'pix' => $payment->provider_response_data['pix'] ?? null,
+                'uuid' => $payment->provider_transaction_id,
+                'externalId' => $payment->external_payment_id,
+                'amount' => number_format($payment->amount, 2, ',', '.'),
+                'createdAt' => $payment->created_at->toIso8601String(),
+                'expire' => 3600, // ou um valor dinâmico se tiver
+                'status' => $payment->status, // pending, waiting_payment, paid, failed
+                'qrcode' => $payment->provider_response_data['pix'] ?? null,
+            ]
         ];
 
 

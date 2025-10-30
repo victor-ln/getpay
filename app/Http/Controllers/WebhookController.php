@@ -220,7 +220,7 @@ class WebhookController extends Controller
                 'balance_before' => $balanceBefore,
                 'amount' => $netAmount,
                 'balance_after' => $balanceAfter,
-                'description' => 'PIX deposit received: ' . $payment->amount . ' | Fee applied: ' . $fee . ' | id: ' . $payment->id,
+                'description' => 'PIX deposit received: ' . $payment->amount . ' | Fee applied: ' . $payment->fee . ' | id: ' . $payment->id,
             ]);
 
 
@@ -762,11 +762,15 @@ class WebhookController extends Controller
 
                 // Guarda o status retornado pela adquirente
 
-                if ($verificationResult['data']['status'] === 'CONCLUIDA') {
-                    $results[$providerId] = [
-                        'raw_response' => $verificationResult['data']['status']
-                    ];
-                }
+                // if ($verificationResult['data']['status'] === 'CONCLUIDA') {
+                //     $results[$providerId] = [
+                //         'raw_response' => $verificationResult['data']['status'],
+                //     ];
+                // }
+
+                $results[$providerId] = [
+                    'raw_response' => $verificationResult['data']['status'],
+                ];
             } catch (\Exception $e) {
                 Log::error("Erro ao verificar status para provider_id {$providerId}: " . $e->getMessage());
                 $results[$providerId] = ['status' => 'ERROR', 'error' => $e->getMessage()];
