@@ -27,6 +27,8 @@ use App\Http\Controllers\PartnerPayoutMethodController;
 use App\Http\Controllers\PixKeyController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\WithdrawController;
+use App\Http\Controllers\Admin\PayoutApprovalController;
+use App\Http\Controllers\AffiliateController;
 use App\Models\Account;
 use App\Models\AccountPixKey;
 use App\Models\Balance;
@@ -35,8 +37,10 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ScheduledTakeController;
 use App\Http\Controllers\ReportController as DownloadReportController;
 use App\Http\Controllers\Admin\MedController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\UserReportController;
 use App\Http\Controllers\BalanceHistoryController;
+use App\Http\Controllers\Partner\PartnerDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,14 +63,14 @@ Route::get('/', function () {
     return redirect('login');
 });
 
-Route::get('/register', function () {
-    return redirect('login');
-});
 
 
-Route::get('/partner/dashboard', [PartnerController::class, 'dashboard'])
-    ->name('partner.dashboard')
+Route::get('/partner/dashboard', [PartnerDashboardController::class, 'dashboard'])
+    ->name('partner.indicate.dashboard')
     ->middleware('auth');
+
+
+
 
 Route::get('/accounts/{account}/history', [PartnerController::class, 'showAccountHistory'])->name('accounts.history');
 
@@ -246,6 +250,16 @@ Route::middleware('auth')->group(function () {
 
 
 
+    Route::prefix('admin/payout-approvals')->name('admin.payout-approvals.')->group(function () {
+        Route::get('/', [PayoutApprovalController::class, 'index'])->name('index');
+        Route::get('/{payment}/details', [PayoutApprovalController::class, 'details'])->name('details');
+        Route::post('/{payment}/approve', [PayoutApprovalController::class, 'approve'])->name('approve');
+        Route::post('/{payment}/cancel', [PayoutApprovalController::class, 'cancel'])->name('cancel');
+    });
+
+
+
+    Route::get('/affiliate', [AffiliateController::class, 'index'])->name('affiliate.index');
 
 
     //rotas do novo modelo de fee
@@ -256,5 +270,12 @@ Route::middleware('auth')->group(function () {
 
     // ROTA PARA REMOVER UM PERFIL DE UMA CONTA
     Route::delete('/accounts/{account}/fee-profiles/{feeProfile}', [AccountController::class, 'detachFeeProfile'])->name('accounts.fee-profiles.detach');
+
+
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('products', ProductController::class);
+        // outras rotas admin aqui
+    });
 });
 // Rota pública para o login

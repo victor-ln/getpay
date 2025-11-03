@@ -224,7 +224,8 @@ class AccountController extends Controller
                 'min_amount_transaction' => $request->min_amount_transaction,
                 'max_amount_transaction' => $request->max_amount_transaction,
                 'partner_id' => $request->partner_id,
-                'acquirer_id' => $request->acquirer_id
+                'acquirer_id' => $request->acquirer_id,
+                'status' => $request->status,
             ]);
         } else {
             $account->update([
@@ -295,35 +296,37 @@ class AccountController extends Controller
             'partner_id' => ['required', 'exists:users,id'],
             'commission_rate' => ['required', 'numeric', 'min:0', 'max:100'],
             'platform_withdrawal_fee_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'min_fee_for_commission' => ['required', 'numeric', 'min:0'],
         ]);
 
-        // --- [NOVO] INÍCIO DA VALIDAÇÃO DE 100% ---
 
-        // 1. Pega a comissão que está tentando ser adicionada (em formato decimal)
+
+
         $newCommissionRate = $data['commission_rate'] / 100;
 
-        // 2. Soma as comissões que JÁ existem para esta conta diretamente no banco
-        // O Eloquent é inteligente e soma a coluna da tabela pivot.
+
+
         $currentTotalCommission = $account->profitSharingPartners()->sum('commission_rate');
 
-        // 3. Verifica se o total ultrapassaria 100% (representado por 1.0)
+
         if (($currentTotalCommission + $newCommissionRate) > 1) {
 
             return response()->json([
-                'success' => false, // Opcional, mas bom manter
+                'success' => false,
                 'message' => 'Adding this commission exceeds the 100% limit for this account. Current total: ' . number_format($currentTotalCommission * 100, 2) . '%'
             ], 422);
         }
 
-        // --- FIM DA VALIDAÇÃO DE 100% ---
 
-        // Se a validação passar, o resto do código é executado normalmente.
+
+
         $account->profitSharingPartners()->attach($data['partner_id'], [
-            'commission_rate' => $newCommissionRate, // Usa o valor já convertido
-            'platform_withdrawal_fee_rate' => $data['platform_withdrawal_fee_rate'] / 100
+            'commission_rate' => $newCommissionRate,
+            'platform_withdrawal_fee_rate' => $data['platform_withdrawal_fee_rate'],
+            'min_fee_for_commission' => $data['min_fee_for_commission'],
         ]);
 
-        // [MODIFICADO] A resposta para o AJAX continua a mesma
+
         $partner = $account->profitSharingPartners()->find($data['partner_id']);
         return response()->json([
             'success' => true,

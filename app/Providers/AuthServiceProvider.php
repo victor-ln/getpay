@@ -10,7 +10,9 @@ use App\Policies\PartnerPayoutMethodPolicy;
 use App\Policies\PixKeyPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WebhookPolicy;
-use Illuminate\Support\Facades\Gate; // ADICIONE ESTA LINHA
+use Illuminate\Support\Facades\Gate;
+use App\Models\Product;
+use App\Policies\ProductPolicy;
 
 // use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -28,6 +30,7 @@ class AuthServiceProvider extends ServiceProvider
         AccountPixKey::class => PixKeyPolicy::class,
         Webhook::class => WebhookPolicy::class,
         PartnerPayoutMethod::class => PartnerPayoutMethodPolicy::class,
+        Product::class => ProductPolicy::class,
     ];
 
     /**
@@ -41,5 +44,7 @@ class AuthServiceProvider extends ServiceProvider
                 return true;
             }
         });
+
+        $this->registerPolicies();
     }
 }

@@ -16,6 +16,9 @@ $(document).ready(function () {
             platform_withdrawal_fee_rate: form
                 .find('[name="platform_withdrawal_fee_rate"]')
                 .val(),
+            min_fee_for_commission: form
+                .find('[name="min_fee_for_commission"]')
+                .val(),
         };
 
         button.prop("disabled", true).text("...");

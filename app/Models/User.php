@@ -88,7 +88,7 @@ class User extends Authenticatable
         // Define a relação Muitos-para-Muitos com o model Account
         return $this->belongsToMany(Account::class, 'account_partner_commission', 'partner_id', 'account_id')
             // Informa ao Eloquent para também buscar as colunas extras da tabela pivot
-            ->withPivot('commission_rate', 'platform_withdrawal_fee_rate')
+            ->withPivot('commission_rate', 'platform_withdrawal_fee_rate', 'min_fee_for_commission')
             ->withTimestamps();
     }
 

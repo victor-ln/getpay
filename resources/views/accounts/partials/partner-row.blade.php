@@ -1,7 +1,8 @@
 <tr data-partner-id="{{ $partner->id }}">
     <td>{{ $partner->name }}</td>
     <td class="text-end">{{ number_format($partner->pivot->commission_rate * 100, 2, ',', '.') }}%</td>
-    <td class="text-end">{{ number_format($partner->pivot->platform_withdrawal_fee_rate * 100, 2, ',', '.') }}%</td>
+    <td class="text-end">R${{ number_format($partner->pivot->min_fee_for_commission, 2, ',', '.') }}</td>
+    <td class="text-end">R${{ number_format($partner->pivot->platform_withdrawal_fee_rate, 2, ',', '.') }}</td>
     <td class="text-center">
         {{-- [MODIFICADO] Adicionada classe ao formulário de remoção --}}
         <form class="form-detach-partner" action="{{ route('accounts.partners.detach', ['account' => $account, 'partner' => $partner]) }}" method="POST">

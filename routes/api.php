@@ -8,6 +8,7 @@ use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WithdrawController;
 use App\Http\Controllers\Api\PaymentController as ApiPaymentController;
 use App\Http\Controllers\Api\V2\PayInController;
+use App\Http\Controllers\AsyncWebhookController;
 use App\Http\Controllers\Webhook\DubaiWebhookController;
 use App\Http\Controllers\Webhook\E2WebhookController;
 use App\Http\Controllers\Webhook\OwenWebhookController;
@@ -79,3 +80,7 @@ Route::prefix('v2')->middleware('auth.api.client')->group(function () {
 
     Route::post('/payin', [PayInController::class, 'store'])->name('api.v2.payin.store');
 });
+
+
+Route::post('/webhook/async-test', [AsyncWebhookController::class, 'handleWebhook'])
+    ->name('webhook.async.test');

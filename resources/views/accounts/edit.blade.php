@@ -41,6 +41,9 @@
                 <a class="nav-link" href="#partners" data-bs-toggle="tab"><i class="bx bx-group me-1"></i> Partner Settings</a>
             </li>
             @endif
+            <li class="nav-item">
+                <a class="nav-link" href="#referral" data-bs-toggle="tab"><i class="bx bx-group me-1"></i> Referral Settings</a>
+            </li>
 
 
             @endisset
@@ -137,6 +140,24 @@
                                 {{-- Se o campo estiver desabilitado, precisa de um hidden para enviar o valor --}}
                                 @if(auth()->user()->level !== 'admin' && isset($model) && $model->acquirer_id)
                                 {!! Form::hidden('acquirer_id', $model->acquirer_id) !!}
+                                @endif
+                            </div>
+
+                            <div class="col-md-3">
+                                {!! Form::label('status', 'Account Status', ['class' => 'form-label']) !!}
+                                {!! Form::select(
+                                'status',
+                                [1 => 'Active', 0 => 'Inactive'],
+                                old('status', optional($account)->status),
+                                [
+                                'class' => 'form-control' . ($errors->has('status') ? ' is-invalid' : ''),
+                                ]
+                                ) !!}
+
+                                @if($errors->has('status'))
+                                <div class="invalid-feedback">
+                                    {{ $errors->first('status') }}
+                                </div>
                                 @endif
                             </div>
                             @endif
@@ -581,7 +602,9 @@
                                     <tr>
                                         <th>Name</th>
                                         <th class="text-end"> Commission on Profit</th>
+                                        <th class="text-end">Min Fee for Commission</th>
                                         <th class="text-end">Platform Withdrawal Fee</th>
+
                                         <th class="text-center">Actions</th>
                                     </tr>
                                 </thead>
@@ -605,8 +628,8 @@
                         {{-- [MODIFICADO] Adicionado ID ao formulário --}}
                         <form id="formAttachPartner" action="{{ route('accounts.partners.attach', $account) }}" method="POST">
                             @csrf
-                            <div class="row g-3 align-items-end">
-                                <div class="col-md-5">
+                            <div class="row  g-3 align-items-end">
+                                <div class="col-md-3">
                                     <label for="partner_id_select" class="form-label">Select Member</label>
                                     {{-- [MODIFICADO] Adicionado ID ao select --}}
                                     <select name="partner_id" id="partner_id_select" class="form-select" required>
@@ -619,6 +642,10 @@
                                 <div class="col-md-3">
                                     <label for="commission_rate" class="form-label">Partner Commission (%)</label>
                                     <input type="number" name="commission_rate" class="form-control" placeholder="25" step="0.01" min="0" max="100" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="min_fee_for_commision" class="form-label">Min Fee for Commission (R$)</label>
+                                    <input type="number" name="min_fee_for_commission" class="form-control" placeholder="5.00" step="0.01" min="0" required>
                                 </div>
                                 <div class="col-md-3">
                                     <label for="platform_withdrawal_fee_rate" class="form-label">Withdrawal Rate (%)</label>
@@ -634,6 +661,20 @@
             </div>
             @endisset
 
+            <div class="tab-pane fade " id="referral" role="tabpanel">
+                <div class="card">
+                    <h6 class="card-header"> Referral Program</h6>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="referral_code" class="form-label">Referral Code (Optional)</label>
+                            <input type="text" name="referral_code" id="referral_code" class="form-control"
+                                placeholder="Enter a referral code, if you have one">
+                            <div class="form-text">If you were referred by another account, enter their code here.</div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

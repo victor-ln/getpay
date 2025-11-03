@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Webhook;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Account, Payment, Webhook, Bank, User, Balance, WebhookRequest, WebhookResponse, BalanceHistory}; // NOVO: Adicionado Balance
+use App\Models\{Account, AccountPartnerCommission, Payment, Webhook, Bank, User, Balance, WebhookRequest, WebhookResponse, BalanceHistory}; // NOVO: Adicionado Balance
 use App\Services\AcquirerResolverService;
 use App\Services\FeeCalculatorService;
 use App\Services\FeeService;
@@ -193,6 +193,50 @@ class E2WebhookController extends Controller
             switch ($payload['data']['status']) {
 
                 case 'LIQUIDATED':
+
+
+
+
+                    $totalProfit = $fee - $cost;
+
+                    // 3. ✅ [NOVA LÓGICA DE DIVISÃO DE LUCRO]
+                    $getpayProfit = $totalProfit; // Lucro padrão da GetPay
+                    $partnerCommission = 0;
+                    $partnerId = $account->partner_id; // Pega o ID do Sócio (User)
+
+                    if ($partnerId) {
+                        $commissionRule = AccountPartnerCommission::where('partner_id', $partnerId)
+                            ->first();
+
+
+
+                        if ($commissionRule) {
+
+                            // 2. Busca o "piso" da taxa. Assumindo que a coluna se chama 'min_fee_for_commission'
+                            $min_fee_rule = $commissionRule->min_fee_for_commission ?? 0; // Ex: 0.30
+
+                            // 3. Compara a taxa cobrada ($fee) com o "piso" ($min_fee_rule)
+                            if ($fee > $min_fee_rule) {
+
+                                // SUCESSO: A taxa foi maior que o piso, o sócio ganha.
+                                $calculatedCommission = ($payment->amount * $commissionRule->commission_rate) / 100;
+
+                                $partnerCommission = min($totalProfit, $calculatedCommission); // A trava de segurança
+                                $getpayProfit = $totalProfit - $partnerCommission;
+                            } else {
+                                // FALHA: A taxa foi igual ou menor que o piso. O sócio não ganha nada.
+                                // O $partnerCommission continua 0 e o $getpayProfit fica com o $totalProfit.
+                                Log::info("Comissão do Sócio (IN) não foi paga. Taxa da transação (R$ {$fee}) não excedeu o piso (R$ {$min_fee_rule}).", [
+                                    'payment_id' => $payment->id,
+                                    'partner_id' => $partnerId,
+                                ]);
+                            }
+                        }
+                    }
+
+
+
+
                     $payment->status = 'paid';
                     $payment->fee = $fee;
                     $payment->cost = $cost;
@@ -200,7 +244,12 @@ class E2WebhookController extends Controller
                     $payment->provider_response_data = $payload;
                     $payment->name = $payload['data']['debtorAccount']['name'] ?? '---';
                     $payment->document = $payload['data']['debtorAccount']['document'] ?? '---';
-                    $payment->platform_profit = (float) ($fee - $cost);
+
+                    $payment->platform_profit = (float) $getpayProfit; // Lucro da GetPay
+                    $payment->partner_id = $partnerId; // ID do Sócio (User)
+                    $payment->partner_commission = $partnerCommission;
+
+
 
 
                     $balance->available_balance += $netAmount;

@@ -19,6 +19,7 @@ class Account extends Model
         'min_amount_transaction',
         'max_amount_transaction',
         'acquirer_id',
+        'referred_by_account_id',
     ];
 
 
@@ -66,7 +67,7 @@ class Account extends Model
         // O modelo relacionado é User, pois um Sócio é um Usuário.
         return $this->belongsToMany(User::class, 'account_partner_commission', 'account_id', 'partner_id')
             // Também informa para buscar as colunas extras
-            ->withPivot('commission_rate', 'platform_withdrawal_fee_rate')
+            ->withPivot('commission_rate', 'platform_withdrawal_fee_rate', 'min_fee_for_commission')
             ->withTimestamps();
     }
 
@@ -122,5 +123,10 @@ class Account extends Model
         return $this->belongsToMany(User::class, 'account_user')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
     }
 }

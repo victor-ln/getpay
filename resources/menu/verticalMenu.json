@@ -13,7 +13,7 @@
             "name": "Fees",
             "icon": "menu-icon tf-icons bx bx-dollar",
             "slug": "fees",
-            "access": ["admin"]
+            "access": ["operator"]
         },
         {
             "url": "/users",
@@ -24,7 +24,7 @@
         },
         {
             "url": "/banks",
-            "name": "Banks",
+            "name": "Acquirer ",
             "icon": "menu-icon tf-icons bx bxs-bank",
             "slug": "banks.index",
             "access": ["admin"]
@@ -34,7 +34,7 @@
             "name": "Partner",
             "icon": "menu-icon tf-icons bx bx-cog",
             "slug": "partner",
-            "access": ["admin", "partner"]
+            "access": ["operator", "partner"]
         },
         {
             "url": "/accounts",
@@ -48,14 +48,14 @@
             "name": "Take",
             "icon": "menu-icon tf-icons bx bx-money",
             "slug": "takes",
-            "access": ["admin"]
+            "access": ["operator"]
         },
         {
             "url": "/admin/payout-destinations",
             "name": "Pix Key Destinations",
             "icon": "menu-icon tf-icons bx bx-key",
             "slug": "pix-key",
-            "access": ["admin"]
+            "access": ["operator"]
         },
         {
             "url": "/download",
@@ -69,28 +69,49 @@
             "name": "Scheduled Takes",
             "icon": "menu-icon tf-icons bx bx-bot",
             "slug": "scheduled-takes",
-            "access": ["admin"]
+            "access": ["operator"]
         },
         {
             "url": "/admin/meds",
             "name": "MED Management",
             "icon": "menu-icon tf-icons bx bx-shield-quarter",
             "slug": "med-management",
-            "access": ["admin"]
+            "access": ["operator"]
         },
         {
             "url": "/admin/user-reports",
             "name": "User Reports",
             "icon": "menu-icon tf-icons bx bx-user-pin",
             "slug": "user-reports",
-            "access": ["admin"]
+            "access": ["operator"]
         },
         {
             "url": "/balance-history",
             "name": "Balance Statement",
             "icon": "menu-icon tf-icons bx bx-list-ul",
             "slug": "balance-history",
+            "access": ["operator"]
+        },
+        {
+            "url": "/admin/payout-approvals",
+            "name": "Payout Approvals",
+            "icon": "menu-icon tf-icons bx bx-task",
+            "slug": "payout-approvals",
             "access": ["admin"]
+        },
+        {
+            "url": "/affiliate",
+            "name": "Affiliate",
+            "icon": "menu-icon tf-icons bx bx-group",
+            "slug": "affiliate",
+            "access": ["admin", "client"]
+        },
+        {
+            "url": "/admin/products",
+            "name": "Products",
+            "icon": "menu-icon tf-icons bx bx-package",
+            "slug": "products",
+            "access": ["admin", "client"]
         }
     ]
 }
