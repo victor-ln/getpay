@@ -36,7 +36,7 @@ mkdir -p /home/site/wwwroot/storage/app/certificates/e2
 chmod 755 /home/site/wwwroot/storage/app/certificates/e2
 
 
-php artisan queue:work  --daemon
+nohup php artisan queue:work --daemon > storage/logs/queue-worker.log 2>&1 &
 
 
 
