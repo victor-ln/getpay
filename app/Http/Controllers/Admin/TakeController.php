@@ -53,49 +53,56 @@ class TakeController extends Controller
      */
     public function create()
     {
-        // [CORREÇÃO] A lógica para obter a data de início foi ajustada para ser mais segura e consistente.
-        // Usamos 'completed' para garantir que pegamos a data do último fecho de caixa bem-sucedido.
+        // 1. Obter a data de início (Sua lógica está ótima)
         $lastTakeDateString = PlatformTake::where('payout_status', 'paid')
             ->latest('end_date')->first()?->end_date ?? '1970-01-01';
 
-        // ✅ A CORREÇÃO PRINCIPAL: Converte a string para um objeto Carbon
         $startDate = Carbon::parse($lastTakeDateString);
-        $endDate = now(); // now() já retorna um objeto Carbon
+        $endDate = now();
 
-        // O resto da sua lógica de busca e cálculo continua exatamente a mesma...
-        $pendingPayments = Payment::whereNull('take_id')
-            ->where('status', 'paid')
-            ->where('updated_at', '>', $startDate)
-            ->get();
+        // 2. Criar a consulta base
+        // Esta é a base que usaremos para todas as agregações.
+        // Note que NÃO usamos ->get()
+        $pendingPaymentsQuery = Payment::whereNull('take_id')
+            ->where('payments.status', 'paid')
+            ->where('payments.updated_at', '>', $startDate);
 
+        // 3. CALCULAR $reportData (DIRETO NO BANCO)
+        // Isso substitui o seu primeiro ->get()->groupBy()->map()
+        $reportData = (clone $pendingPaymentsQuery) // Clonamos a query base
+            ->join('accounts', 'payments.account_id', '=', 'accounts.id')
+            ->select(
+                'accounts.name as account_name',
+                // Usamos DB::raw() para funções de agregação do SQL
+                DB::raw("SUM(CASE WHEN payments.type_transaction = 'IN' THEN payments.amount ELSE 0 END) as total_in"),
+                DB::raw("SUM(COALESCE(payments.fee, 0)) as total_fee"),
+                DB::raw("SUM(COALESCE(payments.cost, 0)) as total_cost")
+            )
+            ->groupBy('accounts.name')
+            ->get(); // Este ->get() agora só retorna os TOTAIS (poucas linhas)
 
+        // 4. CALCULAR $payoutsByAcquirer (DIRETO NO BANCO)
+        // Isso substitui o seu segundo ->groupBy()->map()
+        // Assumindo que provider_id se relaciona com a tabela banks (como no seu código)
+        $payoutsByAcquirer = (clone $pendingPaymentsQuery) // Clonamos a query base
+            ->join('banks', 'payments.provider_id', '=', 'banks.id')
+            ->select(
+                'payments.provider_id as acquirer_id',
+                'banks.name as acquirer_name',
+                // COALESCE trata valores NULL (caso fee/cost sejam nulos)
+                DB::raw('SUM(COALESCE(payments.fee, 0) - COALESCE(payments.cost, 0)) as profit')
+            )
+            ->groupBy('payments.provider_id', 'banks.name')
+            ->get(); // Este ->get() também só retorna os TOTAIS
 
-
-        $reportData = $pendingPayments->groupBy('account_id')->map(function ($payments) {
-            return (object)[
-                'account_name' => $payments->first()->account->name ?? 'Conta ',
-                'total_in'     => $payments->where('type_transaction', 'IN')->sum('amount'),
-                'total_fee'    => $payments->sum('fee'), // ✅ NOVO: Soma de todas as taxas (IN e OUT)
-                'total_cost'   => $payments->sum('cost'), // ✅ NOVO: Soma de todos os custos (IN e OUT)
-            ];
-        })->values();
-
-        $payoutsByAcquirer = $pendingPayments->groupBy('provider_id')->map(function ($payments, $providerId) {
-            return (object)[
-                'acquirer_id'   => $providerId,
-                // Agora que a relação 'bank' existe, esta linha irá funcionar
-                'acquirer_name' => $payments->first()->bank->name ?? 'Adquirente Desconhecido',
-                'profit'        => $payments->sum(fn($p) => ($p->fee ?? 0) - ($p->cost ?? 0)),
-            ];
-        })->values();
-
+        // 5. O resto da sua lógica
         $totalProfit = $payoutsByAcquirer->sum('profit');
-        $destinations = \App\Models\PayoutDestination::where('is_active', true)->get();
+        $destinations = PayoutDestination::where('is_active', true)->get();
 
-
+        // 6. Retornar a View
         return view('admin.takes.create', [
             'totalProfit'        => $totalProfit,
-            'startDate'          => $startDate, // Agora, esta variável é garantidamente um objeto Carbon
+            'startDate'          => $startDate,
             'endDate'            => $endDate,
             'destinations'       => $destinations,
             'reportData'         => $reportData,

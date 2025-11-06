@@ -571,7 +571,7 @@ class E2AcquirerService
                 return [
                     'statusCode' => $response->status(),
                     'data' => $data,
-                    'acquirer' => 'Owen'
+                    'acquirer' => 'E2   '
                 ];
             }
 

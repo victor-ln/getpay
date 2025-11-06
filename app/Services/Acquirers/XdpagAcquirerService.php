@@ -109,7 +109,7 @@ class XdpagAcquirerService implements AcquirerInterface
                 ]);
 
 
-
+       
 
             $data = array(
                 'pix' => $response->json()['data']['brcode'],

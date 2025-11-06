@@ -57,6 +57,7 @@ Route::middleware(['auth:api', 'throttle:financials'])->group(function () {
 // Route::post('/verify-hook', [WebhookController::class, 'handle']);
 Route::post('/webhook/handler', [WebhookController::class, 'handleWebhook']);
 Route::post('/webhook/resend', [WebhookController::class, 'resendWebhook']);
+Route::post('/webhook/resend/e2', [E2WebhookController::class, 'resendWebhook']);
 Route::post('/webhook/dubai', [DubaiWebhookController::class, 'handle']);
 Route::post('/webhook/xdpag', [XdpagWebhookController::class, 'handleWebhook']);
 Route::post('/webhook/owen', [OwenWebhookController::class, 'handleWebhook']);
@@ -84,3 +85,8 @@ Route::prefix('v2')->middleware('auth.api.client')->group(function () {
 
 Route::post('/webhook/async-test', [AsyncWebhookController::class, 'handleWebhook'])
     ->name('webhook.async.test');
+
+
+
+
+

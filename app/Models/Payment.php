@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Bank;
+use App\Models\PaymentBatch;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
@@ -89,5 +91,10 @@ class Payment extends Model
         // na tabela 'payments' se chama 'acquirer_id'.
         // Se o nome for diferente (ex: 'bank_id' ou 'provider_id'), ajuste aqui.
         return $this->belongsTo(Bank::class, 'provider_id');
+    }
+
+    public function paymentBatch(): BelongsTo
+    {
+        return $this->belongsTo(PaymentBatch::class);
     }
 }

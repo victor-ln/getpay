@@ -79,7 +79,8 @@ class ProcessPayInJob implements ShouldQueue
                 throw new \Exception("O método 'createCharge' não existe no serviço " . get_class($acquirerService));
             }
             $token = $acquirerService->getToken();
-            $response = $acquirerService->createCharge($apiData);
+            $response = $acquirerService->createCharge($apiData, $token);
+
 
             // 5. Trata a resposta da API
             //    Esta parte pode precisar de adaptação dependendo da estrutura da resposta

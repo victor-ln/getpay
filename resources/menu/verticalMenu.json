@@ -13,7 +13,7 @@
             "name": "Fees",
             "icon": "menu-icon tf-icons bx bx-dollar",
             "slug": "fees",
-            "access": ["operator"]
+            "access": ["admin"]
         },
         {
             "url": "/users",
@@ -34,7 +34,7 @@
             "name": "Partner",
             "icon": "menu-icon tf-icons bx bx-cog",
             "slug": "partner",
-            "access": ["operator", "partner"]
+            "access": ["admin", "partner"]
         },
         {
             "url": "/accounts",
@@ -48,14 +48,14 @@
             "name": "Take",
             "icon": "menu-icon tf-icons bx bx-money",
             "slug": "takes",
-            "access": ["operator"]
+            "access": ["admin"]
         },
         {
             "url": "/admin/payout-destinations",
             "name": "Pix Key Destinations",
             "icon": "menu-icon tf-icons bx bx-key",
             "slug": "pix-key",
-            "access": ["operator"]
+            "access": ["admin"]
         },
         {
             "url": "/download",
@@ -69,28 +69,28 @@
             "name": "Scheduled Takes",
             "icon": "menu-icon tf-icons bx bx-bot",
             "slug": "scheduled-takes",
-            "access": ["operator"]
+            "access": ["admin"]
         },
         {
             "url": "/admin/meds",
             "name": "MED Management",
             "icon": "menu-icon tf-icons bx bx-shield-quarter",
             "slug": "med-management",
-            "access": ["operator"]
+            "access": ["admin"]
         },
         {
             "url": "/admin/user-reports",
             "name": "User Reports",
             "icon": "menu-icon tf-icons bx bx-user-pin",
             "slug": "user-reports",
-            "access": ["operator"]
+            "access": ["admin"]
         },
         {
             "url": "/balance-history",
             "name": "Balance Statement",
             "icon": "menu-icon tf-icons bx bx-list-ul",
             "slug": "balance-history",
-            "access": ["operator"]
+            "access": ["admin"]
         },
         {
             "url": "/admin/payout-approvals",

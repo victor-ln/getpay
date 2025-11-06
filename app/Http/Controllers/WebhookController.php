@@ -424,8 +424,8 @@ class WebhookController extends Controller
 
             try {
 
-                //$transactionVerified = $payment->provider_response_data;
-                $transactionVerified = json_decode($payment->provider_response_data, true);
+                $transactionVerified = $payment->provider_response_data;
+                //$transactionVerified = json_decode($payment->provider_response_data, true);
 
                 $this->sendOutgoingWebhook($payment->account_id, $payment, $transactionVerified);
             } catch (\Exception $e) {
@@ -744,14 +744,13 @@ class WebhookController extends Controller
             }
 
             // Não verifica novamente se já estiver num estado final no nosso sistema
-            // if (in_array($payment->status, ['paid', 'failed', 'cancelled'])) {
-            //     $results[$providerId] = ['status' => 'ALREADY_RESOLVED', 'current_status' => $payment->status];
-            //     continue;
-            // }
+             if (in_array($payment->status, ['paid', 'failed', 'cancelled'])) {
+                 $results[$providerId] = ['status' => 'ALREADY_RESOLVED', 'current_status' => $payment->status];
+                 continue;
+             }
 
             try {
-                //$bank = Bank::find($payment->provider_id);
-                $bank = Bank::find(6);
+                $bank = Bank::find($payment->provider_id);
                 if (!$bank) {
                     throw new \Exception("Bank with ID {$payment->provider_id} not found.");
                 }

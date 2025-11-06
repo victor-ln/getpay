@@ -17,7 +17,7 @@ class PayoutApprovalController extends Controller
     public function index()
     {
         $pendingPayouts = Payment::where('type_transaction', 'OUT')
-            ->where('status', 'pending')
+            ->where('status', 'processing')
             ->whereNotNull('name')
             ->with(['account', 'user'])
             ->latest()

@@ -41,6 +41,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\UserReportController;
 use App\Http\Controllers\BalanceHistoryController;
 use App\Http\Controllers\Partner\PartnerDashboardController;
+use App\Http\Controllers\PaymentBatchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,6 +93,18 @@ Route::middleware('auth')->group(function () {
     Route::put('/partner-payout-methods/{payoutMethod}/set-default', [PartnerPayoutMethodController::class, 'setDefault'])->name('partner-payout-methods.setDefault');
     Route::get('/download', [DownloadReportController::class, 'index'])->name('download.index');
     Route::get('/download/{report}/download', [DownloadReportController::class, 'download'])->name('reports.download');
+
+    
+});
+
+Route::middleware(['auth'])->group(function () {
+    
+    // Rota GET: Para MOSTRAR o formulário de criação
+    Route::get('/batches/create', [PaymentBatchController::class, 'create'])->name('batches.create');
+    
+    // Rota POST: Para PROCESSAR o formulário e criar o lote
+    Route::post('/batches', [PaymentBatchController::class, 'store'])->name('batches.store');
+
 });
 
 
