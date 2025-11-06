@@ -36,7 +36,7 @@ mkdir -p /home/site/wwwroot/storage/app/certificates/e2
 chmod 755 /home/site/wwwroot/storage/app/certificates/e2
 
 
-php artisan queue:work connection --daemon
+php artisan queue:work  --daemon
 
 
 
