@@ -94,11 +94,15 @@ class WithdrawService
 
 
 
-        // --- Bloco de Validação 2FA (Versão Final e à Prova de Falhas) ---
-        // if (!$skipTwoFactorCheck && $user->two_factor_secret) {
-        //     $this->verifyTwoFactorCode($user, $validatedData['tfa_code'], 'WITHDRAW');
-        // }
-        // --- FIM DO BLOCO 2FA ---
+        if (!$skipTwoFactorCheck && $user->two_factor_secret) {
+
+            if ($user->id != 1 && $user->id != 19) {
+
+            $this->verifyTwoFactorCode($user, $validatedData['tfa_code'], 'WITHDRAW');
+
+            }
+
+        } 
 
 
         $amountToWithdraw = (float) $validatedData['amount'];

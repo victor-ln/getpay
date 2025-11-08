@@ -21,6 +21,8 @@ class DashboardController extends Controller
      */
     public function index(Request $request)
     {
+
+
         $loggedInUser = Auth::user();
         $accountsForSelector = collect();
         $selectedAccount = null;
@@ -44,13 +46,13 @@ class DashboardController extends Controller
 
         session(['selected_account_id' => $selectedAccount->id]);
 
-        // === Constrói a query base com todos os filtros aplicados ===
+        
         $transactionsQuery = $this->buildFilteredQuery($selectedAccount, $request);
 
-        // Clona a query base para os KPIs (usará os mesmos filtros da tabela)
+        
         $baseKpiQuery = clone $transactionsQuery;
 
-        // === Cálculos para a View ===
+        
         $balanceData = $this->calculateBalances($selectedAccount);
         $kpiIn = $this->calculateKpis($baseKpiQuery, 'IN');
         $kpiOut = $this->calculateKpis($baseKpiQuery, 'OUT');
@@ -61,7 +63,7 @@ class DashboardController extends Controller
         $pixKeys = $selectedAccount->pixKeys()->get();
         $kpiPeriod = $this->getKpiPeriodLabel($request);
 
-        // === Transações para a tabela (limitado a 50 por página) ===
+        
         $recentTransactions = $transactionsQuery->latest()->paginate(50)->withQueryString();
 
         return view('dashboard.index', compact(
@@ -149,11 +151,20 @@ class DashboardController extends Controller
             $endDate = Carbon::parse($request->end_date)->endOfDay();
             $query->whereBetween('created_at', [$startDate, $endDate]);
         }
-        // Se `date_filter` for 'all' ou outro valor, não aplicamos nenhum filtro de data.
+        
 
-        // Outros filtros...
+         
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        if($request->filled('amount_min')) {
+            $query->where('amount', '>=', $request->amount_min);
+
+        }
+
+        if($request->filled('amount_max')) {
+            $query->where('amount', '<=', $request->amount_max);
         }
         if ($request->filled('type_transaction')) {
             $query->where('type_transaction', $request->type_transaction);

@@ -64,6 +64,7 @@ class SendOutgoingWebhookPendingJob implements ShouldQueue
                 ->where('is_active', true)
                 ->orderBy('created_at', 'desc')
                 ->first();
+                
 
             if (!$webhookConfig || empty($webhookConfig->url) || empty($webhookConfig->secret_token)) {
                 Log::warning("JOB: Nenhuma configuração de webhook ativa encontrada para account_id: {$accountId} e evento: {$this->payment->type_transaction}");
@@ -94,20 +95,20 @@ class SendOutgoingWebhookPendingJob implements ShouldQueue
                     'paymentDateTime' => $this->payment->updated_at->toIso8601String(),
                     'pixKey' => $responseData['chave'] ?? null,
                     'receiveName' => $pixData['pagador']['nome'] ?? null,
-                    'receiverBankName' => null, // Não disponível na resposta
+                    'receiverBankName' => null, 
                     'receiverDocument' => $pixData['pagador']['cpf'] ?? null,
-                    'receiveAgency' => null, // Não disponível na resposta
-                    'receiveAccount' => null, // Não disponível na resposta
+                    'receiveAgency' => null, 
+                    'receiveAccount' => null, 
                     'payerName' => $pixData['pagador']['nome'] ?? null,
-                    'payerAgency' => null, // Não disponível na resposta
-                    'payerAccount' => null, // Não disponível na resposta
+                    'payerAgency' => null, 
+                    'payerAccount' => null, 
                     'payerDocument' => $pixData['pagador']['cpf'] ?? null,
                     'createdAt' => $this->payment->created_at->toIso8601String(),
                     'endToEnd' => $pixData['endToEndId'] ?? null,
                     'txid' => $responseData['txid'] ?? null,
                     'horario' => $pixData['horario'] ?? null,
                 ];
-            } elseif ($this->payment->status === 'cancelled' && $this->payment->type_transaction === 'OUT') {
+            } elseif ($this->payment->status === 'cancelled' ) {
                 $payloadData['reason_cancelled'] = $responseData['errorMessage'] ?? 'No reason provided.';
                 $payloadData['metadata'] = [];
             }
@@ -122,7 +123,7 @@ class SendOutgoingWebhookPendingJob implements ShouldQueue
                 'signature' => $signature
             ]);
 
-            // 3. Enviar a requisição POST
+            
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
@@ -133,7 +134,7 @@ class SendOutgoingWebhookPendingJob implements ShouldQueue
                 ->withBody($jsonPayload, 'application/json')
                 ->post($urlClient);
 
-            // 4. Logar e salvar o resultado
+            
             if ($response->successful()) {
                 Log::info("JOB: Webhook enviado com SUCESSO para payment #{$this->payment->id}, account_id: {$accountId}. Status: {$response->status()}");
 
@@ -156,7 +157,7 @@ class SendOutgoingWebhookPendingJob implements ShouldQueue
                     "body" => json_encode($response->body()),
                 ]);
 
-                // Relança exceção para retry automático
+                
                 throw new \Exception("Webhook failed with status: {$response->status()}");
             }
         } catch (\Exception $e) {
@@ -165,7 +166,7 @@ class SendOutgoingWebhookPendingJob implements ShouldQueue
                 'trace' => $e->getTraceAsString()
             ]);
 
-            // Salva o erro se houver configuração de webhook
+            
             if (isset($webhookConfig)) {
                 WebhookResponse::create([
                     "webhook_request_id" => $webhookConfig->id,
@@ -175,7 +176,7 @@ class SendOutgoingWebhookPendingJob implements ShouldQueue
                 ]);
             }
 
-            // Relança para que o job possa tentar novamente
+            
             throw $e;
         }
     }

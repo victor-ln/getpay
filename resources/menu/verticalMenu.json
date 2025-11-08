@@ -112,6 +112,20 @@
             "icon": "menu-icon tf-icons bx bx-package",
             "slug": "products",
             "access": ["admin", "client"]
+        },
+        {
+            "url": "/batches/index",
+            "name": "Payment Batches",
+            "icon": "menu-icon tf-icons bx bx-money",
+            "slug": "product-categories",
+            "access": ["admin"]
+        },
+        {
+            "url": "/reports/dashboard",
+            "name": "Reports Dashboard",
+            "icon": "menu-icon tf-icons bx bx-chart",
+            "slug": "reports-dashboard",
+            "access": ["admin"]
         }
     ]
 }

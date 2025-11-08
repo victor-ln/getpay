@@ -115,7 +115,7 @@ class TakeController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Valida se o formulário enviou um array de saques com os campos necessários
+        
         $validated = $request->validate([
             'payouts' => 'required|array',
             'payouts.*.source_bank_id' => 'required|exists:banks,id',
@@ -123,9 +123,14 @@ class TakeController extends Controller
             'payouts.*.amount' => 'required|numeric|gt:0',
         ]);
 
-        // 2. Recalcula tudo para segurança, ignorando os valores do formulário (exceto os IDs)
+        
         $lastTakeDate = PlatformTake::where('payout_status', 'paid')->latest('end_date')->first()?->end_date ?? '1970-01-01';
-        $pendingPayments = Payment::whereNull('take_id')->where('status', 'paid')->where('created_at', '>', $lastTakeDate)->get();
+        
+
+        $pendingPayments = Payment::whereNull('take_id')
+                            ->where('status', 'paid')
+                            ->where('created_at', '>', $lastTakeDate)
+                            ->exists();
 
         if ($pendingPayments->isEmpty()) {
             return back()->with('error', 'No new transactions to process.');
@@ -133,12 +138,18 @@ class TakeController extends Controller
 
         $take = null;
 
-        DB::transaction(function () use ($validated, $pendingPayments, &$take) {
-            // 3. Calcula os totais e o relatório detalhado
-            $reportData = $this->generateDetailedReport($pendingPayments);
-            $summary = $this->calculateSummary($pendingPayments);
+        
+            $reportData = $this->generateDetailedReportFromDB($lastTakeDate);
 
-            // 4. Cria o registo do Take na base de dados
+          
+            $summary = $this->calculateSummaryFromDB($lastTakeDate);
+
+        DB::transaction(function () use ($validated, $pendingPayments, &$take, $summary, $reportData) {
+            
+            
+             // $summary = $this->calculateSummary($pendingPayments);
+             //$reportData = $this->generateDetailedReport($pendingPayments);
+            
             $take = PlatformTake::create([
                 'start_date'        => $pendingPayments->min('created_at'),
                 'end_date'          => now(),
@@ -150,16 +161,16 @@ class TakeController extends Controller
                 'total_costs_in'    => $summary['total_costs_in'],
                 'total_costs_out'   => $summary['total_costs_out'],
                 'report_data'       => $reportData,
-                'payout_status'     => 'paid', // O status inicial é "a processar"
+                'payout_status'     => 'paid', 
                 'executed_by_user_id' => Auth::id(),
             ]);
 
-            // 5. "Carimba" os pagamentos para que não sejam processados novamente
+            
             Payment::whereIn('id', $pendingPayments->pluck('id'))->update(['take_id' => $take->id]);
 
-            // 6. Despacha um Job para cada saque solicitado
+            
             foreach ($validated['payouts'] as $payoutData) {
-                // Despachamos para a fila, passando os IDs. O Job fará o resto.
+                
                 ProcessTakePayoutJob::dispatch(
                     $take->id,
                     $payoutData['source_bank_id'],
@@ -169,12 +180,12 @@ class TakeController extends Controller
             }
         });
 
-        // 7. Redireciona o utilizador para a página de histórico com uma mensagem de sucesso
+        
         return redirect()->route('admin.takes.index')
             ->with('success', "Take #{$take->id} successfully created! Withdrawals are being processed in the background mode.");
     }
 
-    // Métodos auxiliares para manter o código limpo
+    
     private function generateDetailedReport($payments)
     {
         return $payments->groupBy('account_id')->map(function ($paymentsByAccount) {
@@ -199,4 +210,75 @@ class TakeController extends Controller
             'total_costs_out'   => $payments->where('type_transaction', 'OUT')->sum('cost'),
         ];
     }
+
+
+    private function generateDetailedReportFromDB(string $lastTakeDate)
+{
+    
+    
+    $totalInSql = "SUM(CASE WHEN payments.type_transaction = 'IN' THEN payments.amount ELSE 0 END)";
+
+    
+    
+    $accountNameSql = "COALESCE(accounts.name, 'Conta Apagada')";
+
+    return Payment::query()
+        
+        ->whereNull('payments.take_id')
+        ->where('payments.status', 'paid')
+        ->where('payments.created_at', '>', $lastTakeDate)
+        
+        
+        
+        ->leftJoin('accounts', 'payments.account_id', '=', 'accounts.id')
+        
+        
+        ->selectRaw("
+            payments.account_id,
+            $accountNameSql as account_name,
+            $totalInSql as total_in,
+            SUM(payments.fee) as total_fee,
+            SUM(payments.cost) as total_cost
+        ")
+        
+        
+        ->groupBy('payments.account_id', 'accounts.name')
+        
+        
+        ->get();
+}
+
+private function calculateSummaryFromDB(string $lastTakeDate)
+{
+    
+    $volumeInSql  = "SUM(CASE WHEN type_transaction = 'IN' THEN amount ELSE 0 END)";
+    $volumeOutSql = "SUM(CASE WHEN type_transaction = 'OUT' THEN amount ELSE 0 END)";
+
+    
+    $feesInSql    = "SUM(CASE WHEN type_transaction = 'IN' THEN fee ELSE 0 END)";
+    $feesOutSql   = "SUM(CASE WHEN type_transaction = 'OUT' THEN fee ELSE 0 END)";
+
+    
+    $costsInSql   = "SUM(CASE WHEN type_transaction = 'IN' THEN cost ELSE 0 END)";
+    $costsOutSql  = "SUM(CASE WHEN type_transaction = 'OUT' THEN cost ELSE 0 END)";
+
+    return Payment::query()
+        ->whereNull('take_id')
+        ->where('status', 'paid')
+        ->where('created_at', '>', $lastTakeDate)
+        ->selectRaw("
+            MIN(created_at) as start_date,
+            SUM(platform_profit) as total_net_profit,
+            
+            $volumeInSql as total_volume_in,
+            $volumeOutSql as total_volume_out,
+            
+            $feesInSql as total_fees_in,
+            $feesOutSql as total_fees_out,
+            
+            $costsInSql as total_costs_in,
+            $costsOutSql as total_costs_out
+        ")
+        ->first(); 
+}
 }

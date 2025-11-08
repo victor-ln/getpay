@@ -42,6 +42,7 @@ use App\Http\Controllers\Admin\UserReportController;
 use App\Http\Controllers\BalanceHistoryController;
 use App\Http\Controllers\Partner\PartnerDashboardController;
 use App\Http\Controllers\PaymentBatchController;
+use App\Http\Controllers\ReportDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -94,18 +95,30 @@ Route::middleware('auth')->group(function () {
     Route::get('/download', [DownloadReportController::class, 'index'])->name('download.index');
     Route::get('/download/{report}/download', [DownloadReportController::class, 'download'])->name('reports.download');
 
+    Route::get('/reports/dashboard', [ReportDashboardController::class, 'index'])->name('reports.dashboard');
+
     
 });
+
+
 
 Route::middleware(['auth'])->group(function () {
     
     // Rota GET: Para MOSTRAR o formulário de criação
     Route::get('/batches/create', [PaymentBatchController::class, 'create'])->name('batches.create');
+
+    Route::get('/batches/index', [PaymentBatchController::class, 'index'])->name('batches.index');
     
     // Rota POST: Para PROCESSAR o formulário e criar o lote
     Route::post('/batches', [PaymentBatchController::class, 'store'])->name('batches.store');
 
+    
+
 });
+
+Route::get('/batches/{batch:id}', [PaymentBatchController::class, 'show'])
+     ->name('batches.show')
+     ->middleware(['auth']);
 
 
 Route::middleware(['auth'])->group(function () {
@@ -275,20 +288,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/affiliate', [AffiliateController::class, 'index'])->name('affiliate.index');
 
 
-    //rotas do novo modelo de fee
+    
     Route::resource('fee-profiles', FeeProfileController::class);
 
-    // ROTA PARA ADICIONAR UM PERFIL A UMA CONTA
+    
     Route::post('/accounts/{account}/fee-profiles', [AccountController::class, 'attachFeeProfile'])->name('accounts.fee-profiles.attach');
 
-    // ROTA PARA REMOVER UM PERFIL DE UMA CONTA
+    
     Route::delete('/accounts/{account}/fee-profiles/{feeProfile}', [AccountController::class, 'detachFeeProfile'])->name('accounts.fee-profiles.detach');
 
 
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('products', ProductController::class);
-        // outras rotas admin aqui
+        
     });
 });
-// Rota pública para o login
+

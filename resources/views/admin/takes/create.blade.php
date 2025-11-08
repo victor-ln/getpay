@@ -72,6 +72,7 @@
                     <tbody>
                         {{-- Loop sobre os lucros de cada adquirente --}}
                         @foreach ($payoutsByAcquirer as $index => $payout)
+                        
                         @if($payout->profit > 0)
                         <tr>
                             <td>

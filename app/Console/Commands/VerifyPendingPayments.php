@@ -34,7 +34,7 @@ class VerifyPendingPayments extends Command
     protected $feeCalculatorService;
     protected $feeService;
     protected $platformTransactionService;
-
+ 
     public function __construct(
         AcquirerResolverService $acquirerResolver,
         FeeCalculatorService $feeCalculatorService,
@@ -64,8 +64,8 @@ class VerifyPendingPayments extends Command
         $this->info("Iniciando verificação de pagamentos pendentes para o banco: {$bank->name}");
 
         // Define a janela de tempo (ex: entre 30 mins e 48 horas atrás)
-        $startTime = Carbon::now()->subHours(5);
-        $endTime = Carbon::now()->subMinutes(15);
+        $startTime = Carbon::now()->subHours(8);
+        $endTime = Carbon::now()->subMinutes(30);
 
         // Busca os pagamentos pendentes
         $pendingPayments = Payment::where('provider_id', $bankId)
@@ -104,6 +104,7 @@ class VerifyPendingPayments extends Command
 
                 switch (strtoupper($acquirerStatus)) {
                     case 'CONCLUIDA': // Ou 'PAID', 'COMPLETED', etc. Adapte conforme a sua adquirente
+                        $this->info("Processando pagamento confirmado como PAGO...");
                         $this->processPaidPayment($payment, $transactionVerified);
                         $this->info("Pagamento #{$payment->id} confirmado e processado.");
                         break;
@@ -147,7 +148,9 @@ class VerifyPendingPayments extends Command
             'transaction_verified' => $transactionVerified
         ]);
 
-        DB::transaction(function () use ($payment, $transactionVerified) {
+        $bank = Bank::find($payment->provider_id);
+
+        DB::transaction(function () use ($payment, $transactionVerified, $bank) {
             $balance = Balance::firstOrCreate(
                 ['account_id' => $payment->account_id, 'acquirer_id' => $payment->provider_id],
                 ['available_balance' => 0, 'blocked_balance' => 0]
@@ -157,7 +160,8 @@ class VerifyPendingPayments extends Command
             $account = Account::find($payment->account_id);
             $fee = $this->feeCalculatorService->calculate($account, $payment->amount, 'IN');
             $netAmount = $payment->amount - $fee;
-            $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'IN', $payment->amount);
+           // $cost = $this->feeService->calculateTransactionCost($payment->provider()->first(), 'IN', $payment->amount);
+            $cost = $this->feeService->calculateTransactionCost($bank, 'IN', $payment->amount);
 
             $data = $transactionVerified['data'] ?? [];
             $pixData = $data['pix'][0] ?? null;

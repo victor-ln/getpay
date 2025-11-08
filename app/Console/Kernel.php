@@ -22,7 +22,8 @@ class Kernel extends ConsoleKernel
 
         // $schedule->command('schedule:dispatch-takes')->everyMinute();
         // $schedule->command('takes:dispatch-scheduled')->everyMinute();
-        //$schedule->command('payments:verify-pending 30')->everyFifteenMinutes()->withoutOverlapping();
+        $schedule->command('payments:verify-pending 30')->everyThreeHours()->withoutOverlapping();
+        $schedule->command('payments:summarize-hourly')->hourlyAt(5);   
     }
 
     /**

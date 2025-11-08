@@ -492,9 +492,6 @@
                         <th>GPID</th>
                         <th>Transaction ID</th>
                         <th>External ID</th>
-                        @if (Auth::check() && Auth::user()->level == 'admin')
-                        <th>Client</th>
-                        @endif
                         <th>Type</th>
                         <th>Amount</th>
                         <th>Fee</th>
@@ -503,9 +500,6 @@
                         <th>Document</th>
                         <th>Created At</th>
                         <th>Updated At</th>
-                        @if (Auth::check() && Auth::user()->level == 'admin')
-                        <th>Actions</th>
-                        @endif
                     </tr>
                 </thead>
                 <tbody class="table-border-bottom-0">
@@ -514,17 +508,7 @@
                         <td><strong>{{ $transaction->id }}</strong></td>
                         <td>{{ $transaction->provider_transaction_id ?? 'N/A' }}</td>
                         <td>{{ $transaction->external_payment_id ?? 'N/A' }}</td>
-                        @if (Auth::check() && Auth::user()->level == 'admin')
-                        <td>
-                            @if ($transaction->user)
-                            <a href="{{ route('users.edit', $transaction->user->id) }}">
-                                {{ $transaction->user->name }}
-                            </a>
-                            @else
-                            N/A
-                            @endif
-                        </td>
-                        @endif
+                       
                         <td>
                             @if ($transaction->type_transaction == 'IN')
                             <span class="badge bg-label-primary me-1">Pay In</span>
@@ -581,24 +565,7 @@
                         </td>
                         <td>{{ $transaction->created_at->format('d/m/Y H:i:s') }}</td>
                         <td>{{ $transaction->updated_at->format('d/m/Y H:i:s') }}</td>
-                        @if (Auth::check() && Auth::user()->level == 'admin')
-                        <td>
-                            <div class="dropdown">
-                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                    <i class="bx bx-dots-vertical-rounded"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    {{-- Ajuste a rota para a edição da transação se existir --}}
-                                    <a class="dropdown-item"
-                                        href="{{-- route('transactions.edit', $transaction->id) --}}javascript:void(0);"><i
-                                            class="bx bx-edit-alt me-1"></i> Edit</a>
-                                    {{-- Ajuste a rota/lógica para a exclusão da transação se existir --}}
-                                    <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-trash me-1"></i>
-                                        Delete</a>
-                                </div>
-                            </div>
-                        </td>
-                        @endif
+                        
                     </tr>
                     @empty
                     <tr>
