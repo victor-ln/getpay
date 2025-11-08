@@ -3,12 +3,16 @@
 # Navega para a raiz da aplicação
 cd /home/site/wwwroot
 
+cp .azure/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+cp .azure/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+
 # Limpa TODOS os caches antigos do Laravel para garantir que as novas configurações sejam lidas
 echo "Limpando caches do Laravel..."
 php artisan route:clear
 php artisan view:clear
 php artisan config:clear
 php artisan cache:clear
+php artisan opcache:clear
 
 # Recria o cache de configuração com as variáveis de ambiente do Azure
 echo "Recriando o cache de configuração..."
