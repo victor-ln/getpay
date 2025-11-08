@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Str;
+use PDO;
 
 return [
 
@@ -63,11 +64,22 @@ return [
             ]) : [],
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | PostgreSQL (PgBouncer) ÚNICA CONEXÃO
+        |--------------------------------------------------------------------------
+        |
+        | Essa configuração usa o PgBouncer (porta 6432) como camada de pool
+        | e força a emulação de prepared statements no cliente (PDO),
+        | evitando o erro "SQLSTATE[26000]: Invalid sql statement name".
+        |
+        */
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
+            'port' => env('DB_PORT', '6432'), // PgBouncer
             'database' => env('DB_DATABASE', 'forge'),
             'username' => env('DB_USERNAME', 'forge'),
             'password' => env('DB_PASSWORD', ''),
@@ -75,7 +87,11 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'sslmode' => env('DB_SSLMODE', 'require'),
+            'options' => extension_loaded('pdo_pgsql') ? [
+                PDO::ATTR_EMULATE_PREPARES => true,   // Solução para PgBouncer
+                PDO::ATTR_STRINGIFY_FETCHES => false, // Melhor compatibilidade
+            ] : [],
         ],
 
         'sqlsrv' => [
