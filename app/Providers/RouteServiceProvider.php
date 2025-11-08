@@ -36,7 +36,7 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('financials', function (Request $request) {
             // Limita a 10 requisições por minuto por usuário.
             // Este é um bom ponto de partida para transações financeiras.
-            return Limit::perMinute(120)->by($request->user()->id);
+            return Limit::perMinute(240)->by($request->user()->id);
         });
 
         $this->routes(function () {
