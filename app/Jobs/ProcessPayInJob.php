@@ -63,18 +63,17 @@ class ProcessPayInJob implements ShouldQueue
             $acquirerService = $acquirerResolver->resolveByBank($bank);
 
             // 3. Prepara os dados para a API da liquidante
-            //    (Usando o exemplo do E2Service que fizemos)
             $apiData = [
                 'amount' => $payment->amount,
                 'name' => $this->requestData['name'] ?? 'Cobrança PIX',
                 'document' => $this->requestData['document'] ?? null,
-                'description' => $this->requestData['description'] ?? " ",
+                'description' => $this->requestData['description'] ?? "Ao realizar o pagamento, você concorda com nossos termos de serviço.",
                 'identification' => $this->requestData['identification'] ?? " ",
                 'externalId' => $payment->external_payment_id,
             ];
 
             // 4. Chama o método do serviço da liquidante para criar a cobrança
-            //    Assumimos que o método se chama 'createPayment'
+            
             if (!method_exists($acquirerService, 'createCharge')) {
                 throw new \Exception("O método 'createCharge' não existe no serviço " . get_class($acquirerService));
             }

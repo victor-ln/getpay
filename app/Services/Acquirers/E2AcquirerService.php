@@ -366,7 +366,7 @@ class E2AcquirerService
     {
         $token = $this->getPayInToken();
 
-
+        
 
         if (!$token) {
             throw new Exception("Não foi possível autenticar para criar o pagamento.");
