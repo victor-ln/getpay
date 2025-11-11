@@ -23,6 +23,12 @@ echo "Corrigindo permissões..."
 chmod -R 775 /home/site/wwwroot/storage
 chmod -R 775 /home/site/wwwroot/bootstrap/cache
 
+DD_API_KEY=66316bf9be7c6cbe53dc28303e9c266f DD_SITE="datadoghq.com" DD_REMOTE_UPDATES=true DD_APM_INSTRUMENTATION_ENABLED=host DD_ENV=production DD_REMOTE_UPDATES=true DD_PROFILING_ENABLED=auto DD_APM_INSTRUMENTATION_LIBRARIES=php:1 bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"
+
+cd /root && \
+    curl -LO https://github.com/DataDog/dd-trace-php/releases/download/1.13.1/datadog-setup.php && \
+    php datadog-setup.php --php-bin=all --enable-appsec --enable-profiling
+
 # Copia a configuração customizada do Nginx se existir
 echo "Copiando configuração do Nginx..."
 if [ -f "/home/site/wwwroot/default" ]; then
@@ -34,7 +40,6 @@ if [ -f "/home/site/wwwroot/default" ]; then
 else
     echo "AVISO: Arquivo de configuração 'default' do Nginx não encontrado. Usando configuração padrão do Azure."
 fi
-
 
 mkdir -p /home/site/wwwroot/storage/app/certificates/e2
 chmod 755 /home/site/wwwroot/storage/app/certificates/e2

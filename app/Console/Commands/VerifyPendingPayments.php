@@ -20,7 +20,7 @@ use Carbon\Carbon;
 // Adicione aqui o Job de envio de webhook, se já o tiver
 // use App\Jobs\SendOutgoingWebhookJob;
 
-class VerifyPendingPayments extends Command
+class VerifyPendingPayments extends Command 
 {
     /**
      * A assinatura do comando. Aceita o ID do banco.

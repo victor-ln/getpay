@@ -529,7 +529,7 @@ class E2WebhookController extends Controller
                         // Ou por uma configuração genérica para todos os eventos
                         ->orWhere('event', 'ALL');
                 })
-                ->where('is_active', true)
+                ->where('is_active', 1)
                 ->orderBy('created_at', 'desc')
                 ->first();
 

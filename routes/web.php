@@ -67,11 +67,14 @@ Route::get('/', function () {
 
 
 
-Route::get('/partner/dashboard', [PartnerDashboardController::class, 'dashboard'])
+Route::get('/partner/indicate/dashboard', [PartnerDashboardController::class, 'dashboard'])
     ->name('partner.indicate.dashboard')
     ->middleware('auth');
 
 
+Route::get('/partner/dashboard', [PartnerController::class, 'dashboard'])
+    ->name('partner.dashboard')
+    ->middleware('auth');
 
 
 Route::get('/accounts/{account}/history', [PartnerController::class, 'showAccountHistory'])->name('accounts.history');

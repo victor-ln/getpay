@@ -79,12 +79,12 @@ class AccountController extends Controller
 
         // Busca todos os usuários que são sócios para popular o <select> no formulário
         $availablePartners = User::where('level', User::LEVEL_PARTNER)->orderBy('name')->get();
-        $banks = Bank::where('active', 1)->get();
+        $banks = Bank::where('active', true)->get();
 
 
 
         // Retorna a view do formulário de criação
-        return view('accounts.edit', compact('availablePartners', 'banks'));
+        return view('accounts.create', compact('availablePartners', 'banks'));
     }
 
     /**
@@ -203,8 +203,8 @@ class AccountController extends Controller
 
 
         $partners = User::where('level', User::LEVEL_PARTNER)->orderBy('name')->get();
-        $banks = Bank::where('active', 1)->get();
-
+//$banks = Bank::where('active', true)->get();
+$banks = Bank::all();
 
 
 

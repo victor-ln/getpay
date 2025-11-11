@@ -143,6 +143,7 @@
                                 @endif
                             </div>
 
+                            @if(isset($account) && $account->exists)
                             <div class="col-md-3">
                                 {!! Form::label('status', 'Account Status', ['class' => 'form-label']) !!}
                                 {!! Form::select(
@@ -160,6 +161,7 @@
                                 </div>
                                 @endif
                             </div>
+                            @endif
                             @endif
                         </div>
 

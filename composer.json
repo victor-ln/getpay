@@ -12,6 +12,7 @@
         "appstract/laravel-opcache": "^4.0",
         "bacon/bacon-qr-code": "^3.0",
         "barryvdh/laravel-dompdf": "^3.1",
+        "datadog/dd-trace": "^1.13",
         "guzzlehttp/guzzle": "^7.9",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
